@@ -313,7 +313,7 @@ def export_metadata(tracking_dataset, match_id, output_dir):
 
 
 def main(match_id, tracking_dataset, tracking_df, phases_df, formations, voronoi_data, heatmaps,
-         target_fps=None, output_base_dir='../output'):
+         target_fps=None, output_base_dir=None):
     """
     Main entry point for Step 8.
 
@@ -334,6 +334,18 @@ def main(match_id, tracking_dataset, tracking_df, phases_df, formations, voronoi
     print("\n" + "=" * 80)
     print("STEP 8: EXPORT TO JSON")
     print("=" * 80)
+
+    # Use config output directory if not specified
+    if output_base_dir is None:
+        # Try frontend directory first
+        frontend_dir = Path(config.OUTPUT_DIR)
+        if frontend_dir.exists():
+            output_base_dir = config.OUTPUT_DIR
+            print(f"Using frontend output directory: {output_base_dir}")
+        else:
+            # Fall back to backup directory
+            output_base_dir = config.BACKUP_OUTPUT_DIR
+            print(f"Frontend directory not found, using backup: {output_base_dir}")
 
     # Create output directory
     output_dir = Path(output_base_dir) / match_id

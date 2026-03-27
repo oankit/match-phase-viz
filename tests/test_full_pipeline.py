@@ -72,10 +72,10 @@ print(f"[OK] Detected {len(phases_df)} phase segments\n")
 # STEP 4: Compute Voronoi
 # ============================================================================
 print("="*80)
-print("[STEP 4] Computing Voronoi diagrams")
+print("[STEP 4] Computing Rest Defence Grid")
 print("="*80)
-voronoi_data = step4.main(tracking_dataset, tracking_df, output_format='polygons')
-print(f"[OK] Computed Voronoi for {len(voronoi_data)} frames\n")
+voronoi_data = step4.main(tracking_dataset, tracking_df, output_format='rest_defence')
+print(f"[OK] Computed Rest Defence for {len(voronoi_data)} frames\n")
 
 # ============================================================================
 # STEP 5: Compute Formations
@@ -118,8 +118,8 @@ exported_files = step8.main(
     formations=formations,
     voronoi_data=voronoi_data,
     heatmaps=heatmaps,
-    target_fps=4,
-    output_base_dir='../output'
+    target_fps=4
+    # output_base_dir not specified - will use config.OUTPUT_DIR (frontend) by default
 )
 
 # ============================================================================
@@ -146,7 +146,9 @@ for key, path in exported_files.items():
     file_size = Path(path).stat().st_size / 1024  # KB
     print(f"  {key}: {file_size:.1f} KB")
 
-print(f"\nOutput directory: ../output/{match_id}/")
+import os
+output_path = os.path.dirname(list(exported_files.values())[0]) if exported_files else f"../frontend/public/data/{match_id}"
+print(f"\nOutput directory: {output_path}/")
 
 print("\n" + "="*80)
 print("[SUCCESS] All 8 pipeline steps completed!")
