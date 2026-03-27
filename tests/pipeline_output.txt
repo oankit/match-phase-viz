@@ -1,0 +1,320 @@
+================================================================================
+FULL PIPELINE INTEGRATION TEST
+================================================================================
+
+Testing all 8 steps: Load > Features > Phases > Voronoi > Formations > Pressing > xThreat > Export
+
+PROCESSING MODE: TESTING
+  - Loading at: 1 Hz (sample_rate=0.04)
+  - Exporting at: 1 Hz
+  - Downsample factor: 1
+
+================================================================================
+[STEP 1] Loading match data
+================================================================================
+Loading match: J03WN1
+============================================================
+Meta:     DFL_02_01_matchinformation_DFL-COM-000001_DFL-MAT-J03WN1.xml
+Events:   DFL_03_02_events_raw_DFL-COM-000001_DFL-MAT-J03WN1.xml
+Tracking: DFL_04_03_positions_raw_observed_DFL-COM-000001_DFL-MAT-J03WN1.xml (373.6 MB)
+
+[1] Loading event data...
+    Loaded 1429 events
+
+[2] Loading tracking data...
+    Sample rate: 0.04 (this may take a minute...)
+    Loaded 2736 frames
+    Frame rate: 25 Hz
+
+[3] Converting sample to DataFrame...
+    Sample shape: (2736, 125)
+    Columns (first 10): ['period_id', 'timestamp', 'frame_id', 'ball_state', 'ball_owning_team_id', 'ball_x', 'ball_y', 'ball_z', 'ball_speed', 'DFL-OBJ-0001I0_x']
+[OK] Loaded: 1429 events, 2736 tracking frames
+
+================================================================================
+[STEP 2] Computing features
+================================================================================
+
+================================================================================
+STEP 2: SLIDING-WINDOW FEATURE COMPUTATION
+================================================================================
+Computing sliding-window features...
+  Teams: ['DFL-CLU-00000S', 'DFL-CLU-00000B']
+  Players per team: [20, 20]
+  Processing 2736 frames...
+Computing features:   0%|          | 0/2736 [00:00<?, ?it/s]Computing features:   3%|2         | 73/2736 [00:00<00:03, 684.50it/s]Computing features:   6%|5         | 151/2736 [00:00<00:03, 738.76it/s]Computing features:   9%|8         | 236/2736 [00:00<00:03, 781.78it/s]Computing features:  12%|#1        | 318/2736 [00:00<00:03, 790.45it/s]Computing features:  15%|#4        | 401/2736 [00:00<00:02, 802.61it/s]Computing features:  18%|#7        | 486/2736 [00:00<00:02, 816.25it/s]Computing features:  21%|##        | 571/2736 [00:00<00:02, 826.65it/s]Computing features:  24%|##3       | 656/2736 [00:00<00:02, 832.34it/s]Computing features:  27%|##7       | 740/2736 [00:00<00:02, 830.22it/s]Computing features:  30%|###       | 828/2736 [00:01<00:02, 833.98it/s]Computing features:  33%|###3      | 915/2736 [00:01<00:02, 837.43it/s]Computing features:  37%|###6      | 999/2736 [00:01<00:02, 836.42it/s]Computing features:  40%|###9      | 1084/2736 [00:01<00:01, 839.55it/s]Computing features:  43%|####2     | 1168/2736 [00:01<00:01, 801.04it/s]Computing features:  46%|####5     | 1250/2736 [00:01<00:01, 806.21it/s]Computing features:  49%|####8     | 1331/2736 [00:01<00:01, 760.34it/s]Computing features:  52%|#####1    | 1411/2736 [00:01<00:01, 769.99it/s]Computing features:  55%|#####4    | 1495/2736 [00:01<00:01, 784.04it/s]Computing features:  58%|#####7    | 1574/2736 [00:01<00:01, 782.99it/s]Computing features:  60%|######    | 1655/2736 [00:02<00:01, 787.46it/s]Computing features:  64%|######3   | 1739/2736 [00:02<00:01, 802.48it/s]Computing features:  67%|######6   | 1820/2736 [00:02<00:01, 795.66it/s]Computing features:  69%|######9   | 1900/2736 [00:02<00:01, 789.00it/s]Computing features:  72%|#######2  | 1979/2736 [00:02<00:00, 761.22it/s]Computing features:  75%|#######5  | 2056/2736 [00:02<00:00, 755.14it/s]Computing features:  78%|#######7  | 2132/2736 [00:02<00:00, 750.26it/s]Computing features:  81%|########  | 2213/2736 [00:02<00:00, 766.51it/s]Computing features:  84%|########3 | 2294/2736 [00:02<00:00, 774.74it/s]Computing features:  87%|########6 | 2375/2736 [00:02<00:00, 784.98it/s]Computing features:  90%|########9 | 2461/2736 [00:03<00:00, 801.36it/s]Computing features:  93%|#########2| 2544/2736 [00:03<00:00, 809.31it/s]Computing features:  96%|#########6| 2627/2736 [00:03<00:00, 813.35it/s]Computing features:  99%|#########9| 2716/2736 [00:03<00:00, 821.19it/s]Computing features: 100%|##########| 2736/2736 [00:03<00:00, 797.68it/s]
+
+[OK] Features computed: (5472, 9)
+
+Sample output:
+   frame_id       timestamp  period_id  ... pressure_proxy    ball_x    ball_y
+0     10000 0 days 00:00:00          1  ...              2  0.505810  0.505147
+1     10000 0 days 00:00:00          1  ...              0  0.505810  0.505147
+2     10025 0 days 00:00:01          1  ...              0  0.679619  0.563382
+3     10025 0 days 00:00:01          1  ...              0  0.679619  0.563382
+4     10050 0 days 00:00:02          1  ...              1  0.740667  0.589559
+5     10050 0 days 00:00:02          1  ...              0  0.740667  0.589559
+6     10075 0 days 00:00:03          1  ...              1  0.733238  0.584853
+7     10075 0 days 00:00:03          1  ...              0  0.733238  0.584853
+8     10100 0 days 00:00:04          1  ...              0  0.651429  0.637206
+9     10100 0 days 00:00:04          1  ...              0  0.651429  0.637206
+
+[10 rows x 9 columns]
+
+Feature statistics:
+       defensive_line_height  compactness  pressure_proxy       ball_x
+count            5472.000000  5472.000000     5472.000000  5472.000000
+mean                0.325753     0.149719        0.688048     0.477272
+std                 0.163023     0.050267        0.673614     0.253816
+min                 0.016262     0.006464        0.000000    -0.013429
+25%                 0.200899     0.113886        0.000000     0.279333
+50%                 0.310619     0.147225        1.000000     0.458762
+75%                 0.430208     0.186710        1.000000     0.674714
+max                 0.904310     0.357919        7.000000     1.002667
+[OK] Computed 5472 feature rows
+
+================================================================================
+[STEP 3] Classifying phases
+================================================================================
+
+================================================================================
+STEP 3: TWO-PATH PHASE CLASSIFICATION
+================================================================================
+Classifying tracking-based phases...
+
+Tracking-based phase distribution:
+team_id         phase_tracking 
+DFL-CLU-00000B  defensive_block    1038
+                high_press          393
+                open_play          1305
+DFL-CLU-00000S  defensive_block     945
+                high_press          406
+                open_play          1385
+dtype: int64
+Detecting counter-attacks...
+  Found 23 potential possession changes (RECOVERY events)
+  Detected 2 counter-attacks
+Merging tracking and event-based phases...
+
+Final phase distribution:
+team_id         phase_final    
+DFL-CLU-00000B  counter_attack       16
+                defensive_block    1038
+                high_press          389
+                open_play          1293
+DFL-CLU-00000S  counter_attack        4
+                defensive_block     945
+                high_press          406
+                open_play          1381
+dtype: int64
+
+Smoothing phases (min duration: 5.0s)...
+  Smoothing complete.
+
+Smoothed phase distribution:
+team_id         phase_final    
+DFL-CLU-00000B  counter_attack       16
+                defensive_block     592
+                high_press           83
+                open_play          2045
+DFL-CLU-00000S  defensive_block     492
+                high_press           70
+                open_play          2174
+dtype: int64
+
+Creating phase segments...
+  Created 184 phase segments
+
+Phase summary:
+                duration                                    
+                   count       mean        std   min     max
+phase_type                                                  
+counter_attack         1   7.440000        NaN  7.44    7.44
+defensive_block       73  16.893151  13.176494  5.00   59.56
+high_press            17   8.000000   3.297726  5.00   14.00
+open_play             93  39.427527  40.137448  0.00  201.56
+
+[OK] Phase classification complete
+[OK] Detected 184 phase segments
+
+================================================================================
+[STEP 4] Computing Voronoi diagrams
+================================================================================
+
+================================================================================
+STEP 4: VORONOI PITCH CONTROL
+================================================================================
+Computing Voronoi diagrams (format: polygons)...
+  Processing 2736 frames...
+Computing Voronoi:   0%|          | 0/2736 [00:00<?, ?it/s]Computing Voronoi:   2%|1         | 43/2736 [00:00<00:06, 427.44it/s]Computing Voronoi:   3%|3         | 91/2736 [00:00<00:05, 456.80it/s]Computing Voronoi:   5%|5         | 139/2736 [00:00<00:05, 465.34it/s]Computing Voronoi:   7%|6         | 186/2736 [00:00<00:06, 396.80it/s]Computing Voronoi:   9%|8         | 236/2736 [00:00<00:05, 428.61it/s]Computing Voronoi:  11%|#         | 288/2736 [00:00<00:05, 449.50it/s]Computing Voronoi:  12%|#2        | 339/2736 [00:00<00:05, 465.35it/s]Computing Voronoi:  14%|#4        | 389/2736 [00:00<00:04, 472.26it/s]Computing Voronoi:  16%|#6        | 439/2736 [00:00<00:04, 480.04it/s]Computing Voronoi:  18%|#7        | 488/2736 [00:01<00:04, 477.79it/s]Computing Voronoi:  20%|#9        | 538/2736 [00:01<00:04, 478.31it/s]Computing Voronoi:  22%|##1       | 589/2736 [00:01<00:04, 485.48it/s]Computing Voronoi:  23%|##3       | 640/2736 [00:01<00:04, 491.52it/s]Computing Voronoi:  25%|##5       | 690/2736 [00:01<00:04, 492.08it/s]Computing Voronoi:  27%|##7       | 741/2736 [00:01<00:04, 495.04it/s]Computing Voronoi:  29%|##8       | 791/2736 [00:01<00:04, 417.40it/s]Computing Voronoi:  31%|###       | 841/2736 [00:01<00:04, 435.46it/s]Computing Voronoi:  33%|###2      | 892/2736 [00:01<00:04, 454.35it/s]Computing Voronoi:  35%|###4      | 944/2736 [00:02<00:03, 470.75it/s]Computing Voronoi:  36%|###6      | 993/2736 [00:02<00:03, 473.13it/s]Computing Voronoi:  38%|###8      | 1042/2736 [00:02<00:03, 477.76it/s]Computing Voronoi:  40%|###9      | 1091/2736 [00:02<00:03, 477.84it/s]Computing Voronoi:  42%|####1     | 1140/2736 [00:02<00:03, 472.13it/s]Computing Voronoi:  43%|####3     | 1190/2736 [00:02<00:03, 479.76it/s]Computing Voronoi:  45%|####5     | 1241/2736 [00:02<00:03, 484.45it/s]Computing Voronoi:  47%|####7     | 1292/2736 [00:02<00:02, 489.22it/s]Computing Voronoi:  49%|####9     | 1342/2736 [00:02<00:02, 488.62it/s]Computing Voronoi:  51%|#####     | 1391/2736 [00:03<00:03, 416.29it/s]Computing Voronoi:  53%|#####2    | 1442/2736 [00:03<00:02, 438.75it/s]Computing Voronoi:  54%|#####4    | 1488/2736 [00:03<00:02, 441.56it/s]Computing Voronoi:  56%|#####6    | 1536/2736 [00:03<00:02, 451.48it/s]Computing Voronoi:  58%|#####7    | 1583/2736 [00:03<00:02, 456.31it/s]Computing Voronoi:  60%|#####9    | 1632/2736 [00:03<00:02, 462.85it/s]Computing Voronoi:  61%|######1   | 1679/2736 [00:03<00:02, 463.51it/s]Computing Voronoi:  63%|######3   | 1730/2736 [00:03<00:02, 474.66it/s]Computing Voronoi:  65%|######5   | 1781/2736 [00:03<00:01, 483.31it/s]Computing Voronoi:  67%|######7   | 1835/2736 [00:03<00:01, 491.07it/s]Computing Voronoi:  69%|######9   | 1889/2736 [00:04<00:01, 497.10it/s]Computing Voronoi:  71%|#######   | 1940/2736 [00:04<00:01, 500.83it/s]Computing Voronoi:  73%|#######2  | 1991/2736 [00:04<00:01, 500.19it/s]Computing Voronoi:  75%|#######4  | 2042/2736 [00:04<00:01, 497.17it/s]Computing Voronoi:  77%|#######6  | 2094/2736 [00:04<00:01, 499.53it/s]Computing Voronoi:  78%|#######8  | 2144/2736 [00:04<00:01, 403.85it/s]Computing Voronoi:  80%|########  | 2195/2736 [00:04<00:01, 429.32it/s]Computing Voronoi:  82%|########2 | 2246/2736 [00:04<00:01, 448.37it/s]Computing Voronoi:  84%|########3 | 2297/2736 [00:04<00:00, 464.30it/s]Computing Voronoi:  86%|########5 | 2347/2736 [00:05<00:00, 472.75it/s]Computing Voronoi:  88%|########7 | 2397/2736 [00:05<00:00, 478.83it/s]Computing Voronoi:  89%|########9 | 2448/2736 [00:05<00:00, 482.94it/s]Computing Voronoi:  91%|#########1| 2498/2736 [00:05<00:00, 486.73it/s]Computing Voronoi:  93%|#########3| 2548/2736 [00:05<00:00, 489.69it/s]Computing Voronoi:  95%|#########4| 2598/2736 [00:05<00:00, 491.65it/s]Computing Voronoi:  97%|#########6| 2648/2736 [00:05<00:00, 492.84it/s]Computing Voronoi:  99%|#########8| 2698/2736 [00:05<00:00, 493.94it/s]Computing Voronoi: 100%|##########| 2736/2736 [00:05<00:00, 469.43it/s]
+  Computed Voronoi for 2736 frames
+
+[OK] Voronoi computation complete
+  Output format: polygons
+
+Sample frame 10000:
+  Cells: 22
+  Example cell: player=DFL-OBJ-0001I0, team=DFL-CLU-00000S, vertices=6
+[OK] Computed Voronoi for 2736 frames
+
+================================================================================
+[STEP 5] Computing formation graphs
+================================================================================
+
+================================================================================
+STEP 5: FORMATION GRAPHS
+================================================================================
+Computing formation graphs...
+  Teams: ['DFL-CLU-00000S', 'DFL-CLU-00000B']
+
+  Processing team: DFL-CLU-00000S
+    Total players in roster: 20
+    Phase segments: 79
+  Formations (DFL-CLU-00000S):   0%|          | 0/79 [00:00<?, ?it/s]  Formations (DFL-CLU-00000S):   1%|1         | 1/79 [00:00<00:25,  3.06it/s]  Formations (DFL-CLU-00000S):   3%|2         | 2/79 [00:01<00:49,  1.56it/s]  Formations (DFL-CLU-00000S):   4%|3         | 3/79 [00:03<01:40,  1.32s/it]  Formations (DFL-CLU-00000S):   5%|5         | 4/79 [00:03<01:10,  1.07it/s]  Formations (DFL-CLU-00000S):   6%|6         | 5/79 [00:06<02:03,  1.66s/it]  Formations (DFL-CLU-00000S):   8%|7         | 6/79 [00:08<01:55,  1.58s/it]  Formations (DFL-CLU-00000S):   9%|8         | 7/79 [00:09<01:41,  1.41s/it]  Formations (DFL-CLU-00000S):  10%|#         | 8/79 [00:09<01:11,  1.00s/it]  Formations (DFL-CLU-00000S):  11%|#1        | 9/79 [00:11<01:29,  1.29s/it]  Formations (DFL-CLU-00000S):  13%|#2        | 10/79 [00:12<01:23,  1.21s/it]  Formations (DFL-CLU-00000S):  14%|#3        | 11/79 [00:12<01:06,  1.02it/s]  Formations (DFL-CLU-00000S):  15%|#5        | 12/79 [00:14<01:28,  1.32s/it]  Formations (DFL-CLU-00000S):  18%|#7        | 14/79 [00:15<00:55,  1.17it/s]  Formations (DFL-CLU-00000S):  19%|#8        | 15/79 [00:15<00:44,  1.45it/s]  Formations (DFL-CLU-00000S):  20%|##        | 16/79 [00:16<00:44,  1.43it/s]  Formations (DFL-CLU-00000S):  22%|##1       | 17/79 [00:17<00:57,  1.08it/s]  Formations (DFL-CLU-00000S):  23%|##2       | 18/79 [00:18<00:47,  1.28it/s]  Formations (DFL-CLU-00000S):  24%|##4       | 19/79 [00:18<00:40,  1.48it/s]  Formations (DFL-CLU-00000S):  25%|##5       | 20/79 [00:18<00:31,  1.90it/s]  Formations (DFL-CLU-00000S):  27%|##6       | 21/79 [00:19<00:38,  1.50it/s]  Formations (DFL-CLU-00000S):  28%|##7       | 22/79 [00:20<00:33,  1.71it/s]  Formations (DFL-CLU-00000S):  29%|##9       | 23/79 [00:20<00:32,  1.71it/s]  Formations (DFL-CLU-00000S):  30%|###       | 24/79 [00:20<00:24,  2.20it/s]  Formations (DFL-CLU-00000S):  32%|###1      | 25/79 [00:23<00:51,  1.04it/s]  Formations (DFL-CLU-00000S):  33%|###2      | 26/79 [00:23<00:39,  1.36it/s]  Formations (DFL-CLU-00000S):  34%|###4      | 27/79 [00:23<00:28,  1.81it/s]  Formations (DFL-CLU-00000S):  35%|###5      | 28/79 [00:23<00:22,  2.31it/s]  Formations (DFL-CLU-00000S):  37%|###6      | 29/79 [00:23<00:16,  2.98it/s]  Formations (DFL-CLU-00000S):  38%|###7      | 30/79 [00:23<00:14,  3.40it/s]  Formations (DFL-CLU-00000S):  39%|###9      | 31/79 [00:24<00:12,  3.91it/s]  Formations (DFL-CLU-00000S):  41%|####      | 32/79 [00:24<00:12,  3.77it/s]  Formations (DFL-CLU-00000S):  42%|####1     | 33/79 [00:25<00:26,  1.72it/s]  Formations (DFL-CLU-00000S):  43%|####3     | 34/79 [00:25<00:21,  2.05it/s]  Formations (DFL-CLU-00000S):  44%|####4     | 35/79 [00:28<00:46,  1.05s/it]  Formations (DFL-CLU-00000S):  46%|####5     | 36/79 [00:28<00:33,  1.30it/s]  Formations (DFL-CLU-00000S):  47%|####6     | 37/79 [00:29<00:31,  1.35it/s]  Formations (DFL-CLU-00000S):  48%|####8     | 38/79 [00:29<00:25,  1.62it/s]  Formations (DFL-CLU-00000S):  49%|####9     | 39/79 [00:31<00:39,  1.01it/s]  Formations (DFL-CLU-00000S):  51%|#####     | 40/79 [00:31<00:30,  1.27it/s]  Formations (DFL-CLU-00000S):  52%|#####1    | 41/79 [00:32<00:27,  1.36it/s]  Formations (DFL-CLU-00000S):  53%|#####3    | 42/79 [00:32<00:20,  1.78it/s]  Formations (DFL-CLU-00000S):  54%|#####4    | 43/79 [00:36<00:54,  1.51s/it]  Formations (DFL-CLU-00000S):  56%|#####5    | 44/79 [00:36<00:41,  1.18s/it]  Formations (DFL-CLU-00000S):  57%|#####6    | 45/79 [00:38<00:51,  1.50s/it]  Formations (DFL-CLU-00000S):  58%|#####8    | 46/79 [00:39<00:39,  1.20s/it]  Formations (DFL-CLU-00000S):  59%|#####9    | 47/79 [00:39<00:28,  1.13it/s]  Formations (DFL-CLU-00000S):  61%|######    | 48/79 [00:39<00:24,  1.26it/s]  Formations (DFL-CLU-00000S):  62%|######2   | 49/79 [00:42<00:37,  1.26s/it]  Formations (DFL-CLU-00000S):  63%|######3   | 50/79 [00:42<00:30,  1.05s/it]  Formations (DFL-CLU-00000S):  65%|######4   | 51/79 [00:43<00:26,  1.05it/s]  Formations (DFL-CLU-00000S):  66%|######5   | 52/79 [00:44<00:22,  1.22it/s]  Formations (DFL-CLU-00000S):  67%|######7   | 53/79 [00:45<00:23,  1.11it/s]  Formations (DFL-CLU-00000S):  68%|######8   | 54/79 [00:45<00:16,  1.50it/s]  Formations (DFL-CLU-00000S):  71%|#######   | 56/79 [00:45<00:09,  2.49it/s]  Formations (DFL-CLU-00000S):  72%|#######2  | 57/79 [00:47<00:19,  1.15it/s]  Formations (DFL-CLU-00000S):  73%|#######3  | 58/79 [00:47<00:14,  1.44it/s]  Formations (DFL-CLU-00000S):  75%|#######4  | 59/79 [00:48<00:13,  1.44it/s]  Formations (DFL-CLU-00000S):  76%|#######5  | 60/79 [00:49<00:11,  1.65it/s]  Formations (DFL-CLU-00000S):  77%|#######7  | 61/79 [00:52<00:23,  1.33s/it]  Formations (DFL-CLU-00000S):  78%|#######8  | 62/79 [00:52<00:16,  1.00it/s]  Formations (DFL-CLU-00000S):  80%|#######9  | 63/79 [00:52<00:11,  1.34it/s]  Formations (DFL-CLU-00000S):  81%|########1 | 64/79 [00:52<00:08,  1.74it/s]  Formations (DFL-CLU-00000S):  82%|########2 | 65/79 [00:53<00:08,  1.68it/s]  Formations (DFL-CLU-00000S):  84%|########3 | 66/79 [00:54<00:09,  1.42it/s]  Formations (DFL-CLU-00000S):  85%|########4 | 67/79 [00:56<00:15,  1.26s/it]  Formations (DFL-CLU-00000S):  86%|########6 | 68/79 [00:57<00:10,  1.06it/s]  Formations (DFL-CLU-00000S):  87%|########7 | 69/79 [00:58<00:09,  1.03it/s]  Formations (DFL-CLU-00000S):  89%|########8 | 70/79 [00:58<00:07,  1.22it/s]  Formations (DFL-CLU-00000S):  90%|########9 | 71/79 [01:00<00:09,  1.21s/it]  Formations (DFL-CLU-00000S):  91%|#########1| 72/79 [01:00<00:06,  1.12it/s]  Formations (DFL-CLU-00000S):  92%|#########2| 73/79 [01:02<00:07,  1.18s/it]  Formations (DFL-CLU-00000S):  94%|#########3| 74/79 [01:02<00:04,  1.12it/s]  Formations (DFL-CLU-00000S):  95%|#########4| 75/79 [01:05<00:05,  1.31s/it]  Formations (DFL-CLU-00000S):  96%|#########6| 76/79 [01:05<00:02,  1.00it/s]  Formations (DFL-CLU-00000S):  97%|#########7| 77/79 [01:05<00:01,  1.25it/s]  Formations (DFL-CLU-00000S):  99%|#########8| 78/79 [01:06<00:00,  1.46it/s]  Formations (DFL-CLU-00000S): 100%|##########| 79/79 [01:06<00:00,  1.95it/s]  Formations (DFL-CLU-00000S): 100%|##########| 79/79 [01:06<00:00,  1.19it/s]
+    Computed 78 formations
+
+  Processing team: DFL-CLU-00000B
+    Total players in roster: 20
+    Phase segments: 105
+  Formations (DFL-CLU-00000B):   0%|          | 0/105 [00:00<?, ?it/s]  Formations (DFL-CLU-00000B):   1%|          | 1/105 [00:00<00:38,  2.70it/s]  Formations (DFL-CLU-00000B):   2%|1         | 2/105 [00:00<00:35,  2.89it/s]  Formations (DFL-CLU-00000B):   3%|2         | 3/105 [00:00<00:24,  4.10it/s]  Formations (DFL-CLU-00000B):   4%|3         | 4/105 [00:00<00:21,  4.72it/s]  Formations (DFL-CLU-00000B):   7%|6         | 7/105 [00:01<00:13,  7.05it/s]  Formations (DFL-CLU-00000B):   9%|8         | 9/105 [00:01<00:11,  8.05it/s]  Formations (DFL-CLU-00000B):  10%|9         | 10/105 [00:02<00:25,  3.75it/s]  Formations (DFL-CLU-00000B):  10%|#         | 11/105 [00:02<00:28,  3.26it/s]  Formations (DFL-CLU-00000B):  11%|#1        | 12/105 [00:02<00:27,  3.37it/s]  Formations (DFL-CLU-00000B):  14%|#4        | 15/105 [00:04<00:31,  2.89it/s]  Formations (DFL-CLU-00000B):  15%|#5        | 16/105 [00:04<00:27,  3.22it/s]  Formations (DFL-CLU-00000B):  16%|#6        | 17/105 [00:05<00:37,  2.33it/s]  Formations (DFL-CLU-00000B):  58%|#####8    | 61/105 [00:05<00:01, 32.17it/s]  Formations (DFL-CLU-00000B):  83%|########2 | 87/105 [00:05<00:00, 52.28it/s]  Formations (DFL-CLU-00000B): 100%|##########| 105/105 [00:05<00:00, 19.33it/s]
+    Computed 12 formations
+
+  Total formations: 90
+
+[OK] Formation computation complete
+
+Sample formation (phase 0):
+  Phase type: open_play
+  Team: DFL-CLU-00000S
+  Frames: 9
+  Mean positions shape: (10, 2)
+  Mean adjacency shape: (10, 10)
+  Stability scores (first 3): [0.9913873  0.99767125 0.99479276]
+[OK] Computed 90 formations
+
+================================================================================
+[STEP 6] Computing pressing heatmaps
+================================================================================
+
+================================================================================
+STEP 6: PRESSING INTENSITY HEATMAPS (FIXED)
+================================================================================
+Computing pressing intensity heatmaps using tracking data...
+  Found 17 high_press phases
+  Computed 17 pressing heatmaps
+  Average pressing actions per high_press phase: 26.4
+  Total pressing actions: 449
+
+[OK] Pressing heatmap computation complete
+[OK] Computed 17 pressing heatmaps
+
+================================================================================
+[STEP 7] Computing xThreat
+================================================================================
+
+================================================================================
+STEP 7: xTHREAT COMPUTATION
+================================================================================
+NOTE: Using simplified threat model for MVP
+Computing xThreat per phase...
+  Created (8, 12) threat surface
+  Computing xThreat:   0%|          | 0/184 [00:00<?, ?it/s]  Computing xThreat:  51%|#####1    | 94/184 [00:00<00:00, 939.12it/s]  Computing xThreat: 100%|##########| 184/184 [00:00<00:00, 960.50it/s]
+  Computed xThreat for 184 phases
+
+[OK] xThreat computation complete
+
+Sample xThreat values:
+   phase_id       phase_type         team_id  xthreat_gained  xthreat_conceded
+0         0        open_play  DFL-CLU-00000S        0.200000         -0.225000
+1         1  defensive_block  DFL-CLU-00000S       -0.429545          0.000000
+2         2        open_play  DFL-CLU-00000S        0.156818         -0.463636
+3         3  defensive_block  DFL-CLU-00000S        0.454545          0.022727
+4         4        open_play  DFL-CLU-00000S       -1.111364          0.063636
+5         5  defensive_block  DFL-CLU-00000S        0.693182         -0.084091
+6         6        open_play  DFL-CLU-00000S       -0.090909          0.027273
+7         7       high_press  DFL-CLU-00000S        0.293182          0.000000
+8         8        open_play  DFL-CLU-00000S        0.000000          0.154545
+9         9  defensive_block  DFL-CLU-00000S        0.545455          0.300000
+
+xThreat statistics:
+       xthreat_gained  xthreat_conceded
+count      184.000000        184.000000
+mean         0.012154          0.013241
+std          0.311348          0.273725
+min         -1.111364         -0.802273
+25%         -0.023295         -0.034091
+50%          0.000000          0.000000
+75%          0.022727          0.038068
+max          1.490909          1.397727
+[OK] Computed xThreat for 184 phases
+
+================================================================================
+[STEP 8] Exporting to JSON
+================================================================================
+
+================================================================================
+STEP 8: EXPORT TO JSON
+================================================================================
+Output directory: ..\output\J03WN1
+  Downsampling 1Hz -> 4Hz (every 1 frames)
+  Downsampling 25Hz -> 4Hz (every 6 frames)
+  Downsampled: 2736 -> 456 frames
+
+Exporting metadata...
+  Exported metadata to ..\output\J03WN1\metadata.json
+
+Exporting frames...
+  Processing frames:   0%|          | 0/456 [00:00<?, ?it/s]  Processing frames:  94%|#########3| 428/456 [00:00<00:00, 4274.44it/s]  Processing frames: 100%|##########| 456/456 [00:00<00:00, 4459.92it/s]
+  Exported 456 frames to ..\output\J03WN1\frames.json
+
+Exporting phases...
+  Exported 184 phases to ..\output\J03WN1\phases.json
+
+Exporting formations...
+  Exported 90 formations to ..\output\J03WN1\formations.json
+
+Exporting Voronoi...
+  Exported 2736 Voronoi frames to ..\output\J03WN1\voronoi.json
+
+Exporting heatmaps...
+  Exported 17 heatmaps to ..\output\J03WN1\heatmaps.json
+
+[OK] Export complete
+
+Exported files:
+  metadata: ..\output\J03WN1\metadata.json (3.9 KB)
+  frames: ..\output\J03WN1\frames.json (1751.0 KB)
+  phases: ..\output\J03WN1\phases.json (63.1 KB)
+  formations: ..\output\J03WN1\formations.json (310.5 KB)
+  voronoi: ..\output\J03WN1\voronoi.json (34893.1 KB)
+  heatmaps: ..\output\J03WN1\heatmaps.json (97.9 KB)
+
+================================================================================
+PIPELINE COMPLETED SUCCESSFULLY
+================================================================================
+
+Match ID: J03WN1
+Sample Rate: 0.04 (1 Hz for testing)
+
+Pipeline Outputs:
+  Events: 1429
+  Tracking frames: 2736
+  Feature rows: 5472
+  Phase segments: 184
+  Voronoi frames: 2736
+  Formations: 90
+  Pressing heatmaps: 17
+
+Exported JSON files:
+  metadata: 3.9 KB
+  frames: 1751.0 KB
+  phases: 63.1 KB
+  formations: 310.5 KB
+  voronoi: 34893.1 KB
+  heatmaps: 97.9 KB
+
+Output directory: ../output/J03WN1/
+
+================================================================================
+[SUCCESS] All 8 pipeline steps completed!
+================================================================================

@@ -1,0 +1,181 @@
+{
+  "match_id": "J03WN1",
+  "teams": [
+    {
+      "id": "DFL-CLU-00000S",
+      "name": "VfL Bochum 1848",
+      "players": [
+        {
+          "id": "DFL-OBJ-0001I0",
+          "name": "Manuel Riemann"
+        },
+        {
+          "id": "DFL-OBJ-00002Z",
+          "name": "S. Zoller"
+        },
+        {
+          "id": "DFL-OBJ-002G6G",
+          "name": "Cristian Gamboa"
+        },
+        {
+          "id": "DFL-OBJ-00003J",
+          "name": "M. Esser"
+        },
+        {
+          "id": "DFL-OBJ-000172",
+          "name": "K. St\u00f6ger"
+        },
+        {
+          "id": "DFL-OBJ-0000YV",
+          "name": "P. Hofmann"
+        },
+        {
+          "id": "DFL-OBJ-0000XU",
+          "name": "D. Heintz"
+        },
+        {
+          "id": "DFL-OBJ-000199",
+          "name": "A. Losilla"
+        },
+        {
+          "id": "DFL-OBJ-0001WB",
+          "name": "Danilo Soares"
+        },
+        {
+          "id": "DFL-OBJ-J014F7",
+          "name": "I. Ordets"
+        },
+        {
+          "id": "DFL-OBJ-0025J8",
+          "name": "G. Holtmann"
+        },
+        {
+          "id": "DFL-OBJ-J016C3",
+          "name": "S. Janko"
+        },
+        {
+          "id": "DFL-OBJ-0027FG",
+          "name": "T. Asano"
+        },
+        {
+          "id": "DFL-OBJ-0027LO",
+          "name": "P. F\u00f6rster"
+        },
+        {
+          "id": "DFL-OBJ-0028NB",
+          "name": "C. Antwi-Adjei"
+        },
+        {
+          "id": "DFL-OBJ-0028D6",
+          "name": "K. Schlotterbeck"
+        },
+        {
+          "id": "DFL-OBJ-002GAV",
+          "name": "Vasileios Lampropoulos"
+        },
+        {
+          "id": "DFL-OBJ-J01AQV",
+          "name": "M. Broschinski"
+        },
+        {
+          "id": "DFL-OBJ-002GM0",
+          "name": "E. Ma\u0161ovi\u0107"
+        },
+        {
+          "id": "DFL-OBJ-002G4G",
+          "name": "P. Osterhage"
+        }
+      ]
+    },
+    {
+      "id": "DFL-CLU-00000B",
+      "name": "Bayer 04 Leverkusen",
+      "players": [
+        {
+          "id": "DFL-OBJ-0026NY",
+          "name": "L. Hr\u00e1deck\u00fd"
+        },
+        {
+          "id": "DFL-OBJ-0001UP",
+          "name": "Jonathan Tah"
+        },
+        {
+          "id": "DFL-OBJ-J012D8",
+          "name": "P. Pentz"
+        },
+        {
+          "id": "DFL-OBJ-J013O2",
+          "name": "S. Azmoun"
+        },
+        {
+          "id": "DFL-OBJ-0002LI",
+          "name": "N. Amiri"
+        },
+        {
+          "id": "DFL-OBJ-002G1P",
+          "name": "D. Sinkgraven"
+        },
+        {
+          "id": "DFL-OBJ-002GNP",
+          "name": "Timothy Fosu-Mensah"
+        },
+        {
+          "id": "DFL-OBJ-002G02",
+          "name": "M. Diaby"
+        },
+        {
+          "id": "DFL-OBJ-002G57",
+          "name": "A. Azhil"
+        },
+        {
+          "id": "DFL-OBJ-J01B8R",
+          "name": "M. Bakker"
+        },
+        {
+          "id": "DFL-OBJ-002GAR",
+          "name": "Edmond Tapsoba"
+        },
+        {
+          "id": "DFL-OBJ-002G8H",
+          "name": "Exequiel Palacios"
+        },
+        {
+          "id": "DFL-OBJ-002GFO",
+          "name": "A. Aourir"
+        },
+        {
+          "id": "DFL-OBJ-002GH4",
+          "name": "L. K\u00f6hl"
+        },
+        {
+          "id": "DFL-OBJ-002GOI",
+          "name": "Jeremie Frimpong"
+        },
+        {
+          "id": "DFL-OBJ-002GBK",
+          "name": "Florian Wirtz"
+        },
+        {
+          "id": "DFL-OBJ-J01G0J",
+          "name": "A. Hlo\u017eek"
+        },
+        {
+          "id": "DFL-OBJ-J01K4C",
+          "name": "Noah Mbamba"
+        },
+        {
+          "id": "DFL-OBJ-J01KDN",
+          "name": "A. Adli"
+        },
+        {
+          "id": "DFL-OBJ-J01QRV",
+          "name": "Madi Monamay"
+        }
+      ]
+    }
+  ],
+  "pitch": {
+    "length": 105.0,
+    "width": 68.0
+  }
+}
