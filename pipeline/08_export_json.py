@@ -233,9 +233,9 @@ def export_voronoi(voronoi_data, output_dir):
     # Convert voronoi_data
     voronoi_data_converted = convert_numpy_types(voronoi_data)
 
-    voronoi_path = output_dir / 'voronoi.json'
+    voronoi_path = output_dir / 'pitch_control.json'
     with open(voronoi_path, 'w') as f:
-        json.dump(voronoi_data_converted, f, indent=2)
+        json.dump(voronoi_data_converted, f, separators=(',', ':'))
 
     print(f"  Exported {len(voronoi_data)} Voronoi frames to {voronoi_path}")
 

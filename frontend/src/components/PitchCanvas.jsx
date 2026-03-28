@@ -63,36 +63,35 @@ const PitchCanvas = ({
           ctx.clip()
         }
 
-        voronoi.control_grid.forEach(pt => {
-          const controllingTeam = pt.team_id
-          const timeToReach = pt.time || 0
+        // teams array maps index to team_id
+        const teams = voronoi.teams || []
 
-          // Team colors
+        voronoi.control_grid.forEach(pt => {
+          // Compact format: [x, y, teamIdx, time]
+          const [px, py, teamIdx, timeToReach] = Array.isArray(pt)
+            ? pt
+            : [pt.x, pt.y, null, pt.time || 0]
+
+          const controllingTeam = teamIdx !== null ? teams[teamIdx] : pt.team_id
           const color = teamColors[controllingTeam] || '#666'
 
-          // Opacity based on time to reach (closer = more opaque)
-          // Time typically ranges from 0-3 seconds
           const maxTime = 3.0
-          const normalizedTime = Math.min(timeToReach / maxTime, 1)
-          // Invert so closer points are more opaque
+          const normalizedTime = Math.min((timeToReach || 0) / maxTime, 1)
           const opacity = 0.7 * (1 - normalizedTime) + 0.1
 
-          // Size based on grid resolution
-          const radius = 8
+          const radius = 14
 
-          // Create gradient for smoother appearance
           const gradient = ctx.createRadialGradient(
-            xScale(pt.x), yScale(pt.y), 0,
-            xScale(pt.x), yScale(pt.y), radius
+            xScale(px), yScale(py), 0,
+            xScale(px), yScale(py), radius
           )
 
-          // Use team color with time-based opacity
           const alphaHex = Math.floor(opacity * 255).toString(16).padStart(2, '0')
           gradient.addColorStop(0, `${color}${alphaHex}`)
-          gradient.addColorStop(1, `${color}11`)  // Fade to very transparent
+          gradient.addColorStop(1, `${color}11`)
 
           ctx.beginPath()
-          ctx.arc(xScale(pt.x), yScale(pt.y), radius, 0, 2 * Math.PI)
+          ctx.arc(xScale(px), yScale(py), radius, 0, 2 * Math.PI)
           ctx.fillStyle = gradient
           ctx.fill()
         })

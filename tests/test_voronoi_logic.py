@@ -5,7 +5,7 @@ import importlib
 import numpy as np
 
 step1 = importlib.import_module('01_load_data')
-step4 = importlib.import_module('04_compute_voronoi')
+step4 = importlib.import_module('04_compute_pitch_control')
 
 event_dataset, tracking_dataset, events_df, tracking_df = step1.load_match("J03WN1", sample_rate=0.04)
 tracking_df = tracking_dataset.to_df()

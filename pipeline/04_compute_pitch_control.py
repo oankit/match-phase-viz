@@ -189,7 +189,7 @@ def rasterize_voronoi_to_grid(positions, team_ids, grid_size=(105, 68)):
     return team_grid
 
 
-def compute_voronoi_for_frame(tracking_row, player_team_map, output_format='polygons'):
+def compute_voronoi_for_frame(tracking_row, player_team_map, output_format='polygons', goalkeeper_ids=None):
     """
     Compute Voronoi diagram for a single frame.
 
@@ -246,24 +246,19 @@ def compute_voronoi_for_frame(tracking_row, player_team_map, output_format='poly
         # 1. Get ball possession info
         attacking_team_id = tracking_row.get('ball_owning_team_id')
 
-        # 2. Filter out goalkeepers (first player in sorted list per team)
+        # 2. Filter out goalkeepers using metadata
+        gk_ids = goalkeeper_ids or set()
         teams = {}
-        for pid, tid in zip(player_ids, team_ids):
-            if tid not in teams:
-                teams[tid] = []
-            teams[tid].append(pid)
-
-        # Sort and exclude first player (GK) from each team
         outfield_positions = []
         outfield_player_ids = []
         outfield_team_ids = []
 
-        for tid, pids in teams.items():
-            sorted_pids = sorted(pids)
-            # Skip the first player (goalkeeper)
-            for pid in sorted_pids[1:]:
-                idx = player_ids.index(pid)
-                outfield_positions.append(positions[idx])
+        for i, (pid, tid) in enumerate(zip(player_ids, team_ids)):
+            if tid not in teams:
+                teams[tid] = []
+            teams[tid].append(pid)
+            if pid not in gk_ids:
+                outfield_positions.append(positions[i])
                 outfield_player_ids.append(pid)
                 outfield_team_ids.append(tid)
 
@@ -272,63 +267,74 @@ def compute_voronoi_for_frame(tracking_row, player_team_map, output_format='poly
         if len(outfield_positions) < 2:
             return {'frame_id': tracking_row['frame_id'], 'timestamp': tracking_row['timestamp'], 'control_grid': []}
 
-        # 3. Generate Grid covering entire pitch (35x22 for ~3m resolution)
-        # Reduced from 50x30 for performance
-        grid_w, grid_h = 35, 22
-        x_grid = np.linspace(0.05, 0.95, grid_w)  # Slightly inset from edges
+        # 3. Generate grid (24x16, slightly spaced at radius 14)
+        grid_w, grid_h = 24, 16
+        x_grid = np.linspace(0.05, 0.95, grid_w)
         y_grid = np.linspace(0.05, 0.95, grid_h)
         xx, yy = np.meshgrid(x_grid, y_grid)
         grid_points = np.column_stack([xx.ravel(), yy.ravel()])
 
         # 4. Calculate time-to-intercept for each grid point
-        # Simple model: time = distance / speed
-        # Assume max speed of 8 m/s (normalized: 8/105 = 0.076 units/s)
-        max_speed = 0.076
+        max_speed = 0.076  # 8 m/s normalized
 
-        # Calculate distances from each grid point to each outfield player
         distances = np.linalg.norm(
             grid_points[:, np.newaxis, :] - outfield_positions[np.newaxis, :, :],
             axis=2
         )
-
-        # Convert distances to time (assuming all players at max speed)
         time_to_reach = distances / max_speed
-
-        # Find which player (and thus team) reaches each point first
         nearest_player_idx = time_to_reach.argmin(axis=1)
         min_times = time_to_reach.min(axis=1)
 
-        # 5. Create control grid with time information
-        control_grid = []
-        for i, pt in enumerate(grid_points):
-            control_grid.append({
-                'x': float(pt[0]),
-                'y': float(pt[1]),
-                'team_id': str(outfield_team_ids[nearest_player_idx[i]]),
-                'time': float(min_times[i])  # Time to reach in seconds
-            })
-
-        # 6. Optional: Calculate attacking team's convex hull for reference
+        # 6. Calculate convex hull of attacking team's outfield players (no GK)
         hull_vertices = []
         if not pd.isna(attacking_team_id) and attacking_team_id in teams:
-            attacking_positions = []
-            for pid in sorted(teams[attacking_team_id])[1:]:  # Skip GK
-                x_col, y_col = f'{pid}_x', f'{pid}_y'
-                if x_col in tracking_row.index and not pd.isna(tracking_row[x_col]):
-                    attacking_positions.append([tracking_row[x_col], tracking_row[y_col]])
+            attacking_outfield = []
+            for i, (pid, tid) in enumerate(zip(outfield_player_ids, outfield_team_ids)):
+                if tid == attacking_team_id:
+                    attacking_outfield.append(outfield_positions[i])
 
-            if len(attacking_positions) >= 3:
+            if len(attacking_outfield) >= 3:
                 try:
-                    attacking_positions = np.array(attacking_positions)
-                    hull = ConvexHull(attacking_positions)
-                    hull_vertices = attacking_positions[hull.vertices].tolist()
+                    attacking_outfield = np.array(attacking_outfield)
+                    hull = ConvexHull(attacking_outfield)
+                    hull_vertices = attacking_outfield[hull.vertices].tolist()
                 except Exception:
                     pass
+
+        # 5. Filter grid to only points inside convex hull, use compact format
+        # Build team_id index for compact output
+        unique_teams = sorted(set(outfield_team_ids))
+        team_to_idx = {t: i for i, t in enumerate(unique_teams)}
+
+        control_grid = []
+        if hull_vertices and len(hull_vertices) >= 3:
+            hull_path = mpath.Path(hull_vertices)
+            inside_mask = hull_path.contains_points(grid_points)
+            for i in np.where(inside_mask)[0]:
+                control_grid.append([
+                    round(float(grid_points[i][0]), 3),
+                    round(float(grid_points[i][1]), 3),
+                    team_to_idx[outfield_team_ids[nearest_player_idx[i]]],
+                    round(float(min_times[i]), 2)
+                ])
+        else:
+            # No hull available, export all points
+            for i, pt in enumerate(grid_points):
+                control_grid.append([
+                    round(float(pt[0]), 3),
+                    round(float(pt[1]), 3),
+                    team_to_idx[outfield_team_ids[nearest_player_idx[i]]],
+                    round(float(min_times[i]), 2)
+                ])
+
+        # Round hull vertices
+        hull_vertices = [[round(x, 3), round(y, 3)] for x, y in hull_vertices]
 
         return {
             'frame_id': tracking_row['frame_id'],
             'timestamp': tracking_row['timestamp'],
             'attacking_team_id': str(attacking_team_id) if not pd.isna(attacking_team_id) else None,
+            'teams': unique_teams,
             'convex_hull': hull_vertices,
             'control_grid': control_grid,
         }
@@ -337,7 +343,7 @@ def compute_voronoi_for_frame(tracking_row, player_team_map, output_format='poly
         raise ValueError(f"Unknown output_format: {output_format}")
 
 
-def compute_all_voronoi(tracking_df, player_team_map, output_format='polygons'):
+def compute_all_voronoi(tracking_df, player_team_map, output_format='polygons', goalkeeper_ids=None):
     """
     Compute Voronoi diagrams for all frames.
 
@@ -345,6 +351,7 @@ def compute_all_voronoi(tracking_df, player_team_map, output_format='polygons'):
         tracking_df: Tracking DataFrame (wide format)
         player_team_map: dict mapping player_id to team_id
         output_format: 'polygons' or 'grid'
+        goalkeeper_ids: set of player IDs that are goalkeepers
 
     Returns:
         List[dict]: Voronoi data for each frame
@@ -355,7 +362,7 @@ def compute_all_voronoi(tracking_df, player_team_map, output_format='polygons'):
     voronoi_data = []
     for idx in tqdm(range(len(tracking_df)), desc="Computing Voronoi"):
         row = tracking_df.iloc[idx]
-        voronoi_frame = compute_voronoi_for_frame(row, player_team_map, output_format)
+        voronoi_frame = compute_voronoi_for_frame(row, player_team_map, output_format, goalkeeper_ids)
         voronoi_data.append(voronoi_frame)
 
     print(f"  Computed Voronoi for {len(voronoi_data)} frames")
@@ -379,15 +386,21 @@ def main(tracking_dataset, tracking_df, output_format='polygons'):
     print("STEP 4: VORONOI PITCH CONTROL")
     print("=" * 80)
 
-    # Get player-team mapping
+    # Get player-team mapping and identify goalkeepers
     player_team_map = {}
+    goalkeeper_ids = set()
     for team in tracking_dataset.metadata.teams:
         team_id = team.team_id
         for player in team.players:
             player_team_map[player.player_id] = team_id
+            pos = getattr(player, 'starting_position', None) or getattr(player, 'position', None)
+            if pos and str(pos).lower().startswith('goalkeeper'):
+                goalkeeper_ids.add(player.player_id)
+
+    print(f"  Identified {len(goalkeeper_ids)} goalkeepers: {goalkeeper_ids}")
 
     # Compute Voronoi
-    voronoi_data = compute_all_voronoi(tracking_df, player_team_map, output_format)
+    voronoi_data = compute_all_voronoi(tracking_df, player_team_map, output_format, goalkeeper_ids)
 
     print("\n[OK] Voronoi computation complete")
     print(f"  Output format: {output_format}")

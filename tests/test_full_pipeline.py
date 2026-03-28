@@ -15,7 +15,7 @@ import config
 step1 = importlib.import_module('01_load_data')
 step2 = importlib.import_module('02_compute_features')
 step3 = importlib.import_module('03_classify_phases')
-step4 = importlib.import_module('04_compute_voronoi')
+step4 = importlib.import_module('04_compute_pitch_control')
 step5 = importlib.import_module('05_compute_formations')
 step6 = importlib.import_module('06_compute_pressing')
 step7 = importlib.import_module('07_compute_xthreat')

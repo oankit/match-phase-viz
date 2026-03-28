@@ -6,7 +6,7 @@ import importlib
 
 # Import steps
 step1 = importlib.import_module('01_load_data')
-step4 = importlib.import_module('04_compute_voronoi')
+step4 = importlib.import_module('04_compute_pitch_control')
 
 print("="*80)
 print("TESTING PIPELINE: STEP 4 (VORONOI)")

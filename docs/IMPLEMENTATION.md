@@ -515,3 +515,11 @@ mplsoccer>=1.1.0       # Visualization
 - Heatmap control grid dots were rendering across the entire pitch
 - Added canvas clipping path using the convex hull polygon in `PitchCanvas.jsx`
 - Dots now only appear inside the white boundary line (convex hull of outfield players)
+
+### Voronoi JSON Size Optimization ✓ (March 27)
+- voronoi.json reduced from 320.9 MB to 2.9 MB (99% reduction)
+- Three changes applied:
+  1. Filter grid points to only those inside convex hull (pipeline `04_compute_voronoi.py`)
+  2. Reduced grid resolution from 35x22 (770 pts) to 20x13 (260 pts) per frame
+  3. Compact format: `[x, y, teamIdx, time]` arrays with rounded values, no JSON indentation
+- Frontend `PitchCanvas.jsx` updated to read both compact and legacy formats
