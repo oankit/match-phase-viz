@@ -74,36 +74,42 @@ Phase-Aware Soccer Analytics Dashboard - Python Pipeline
 
 ---
 
-## Step 3: Classify Phases 
+## Step 3: Classify Phases (v3 - Possession-Aware)
 
 **File**: `pipeline/03_classify_phases.py`
 
-**Status**:  Implemented and tested
+**Status**: Implemented and tested (v3 - possession-aware, 2026-03-27)
 
 **Implementation Details**:
-- **Two-path classification**:
-  - **Path A (tracking-based)**: High press, defensive block, open play
+- **Possession-aware two-path classification**:
+  - Uses `ball_owning_team_id` from tracking data to determine possession context
+  - Both teams get a phase label per frame simultaneously
+  - **Team WITH ball**: `attacking` (ball in opponent half) or `build_up` (ball in own half)
+  - **Team WITHOUT ball**: `high_press`, `mid_block`, or `defensive_block`
   - **Path B (event-based)**: Counter-attacks using Bekkers & Sahasrabudhe (SSAC 2023) rules
-- Counter-attack detection rules:
-  1. Start in defensive half (x < 0.5)
-  2. No set pieces in sequence
-  3. Ball moves e 10m forward (e 0.095 normalized)
-  4. Forward velocity e 4 m/s (e 0.038 normalized units/s)
-- Post-processing: Smooths adjacent segments, drops segments < 5 seconds
+  - Counter-attacks override tracking-based labels when active
+- Smoothing: short phases revert to natural fallback (e.g., short high_press -> mid_block)
 
-**Key Fixes**:
-- Updated for normalized coordinates (0-1 instead of meters)
-- Changed event type detection to use actual types from data: `['RECOVERY']`
-- Added proper set piece detection checking both `event_type` and `set_piece_type` columns
-- Fixed timestamp handling: converted `numpy.timedelta64` to `pandas.Timedelta` before calling `.total_seconds()`
+**Phase Taxonomy**:
+| Team State | Phase | Condition |
+|---|---|---|
+| Has ball | attacking | Ball in opponent half, team pushed forward |
+| Has ball | build_up | Ball in own half |
+| No ball | high_press | Defensive line high, pressure near ball |
+| No ball | mid_block | Between high press and deep block |
+| No ball | defensive_block | Deep, compact, protecting own goal |
+| Either | counter_attack | Rapid transition (event-based detection) |
+| Fallback | open_play | Short ambiguous phases |
 
-**Test Results**:
--  Detected 184 phase segments:
-  - 93 open_play (avg 39.4s)
-  - 73 defensive_block (avg 16.9s)
-  - 17 high_press (avg 8.0s)
-  - 1 counter_attack (7.4s)
--  Detection logic working correctly
+**Phase Colors (frontend)**:
+- Attacking: #10B981 (green), Build-up: #06B6D4 (cyan)
+- High Press: #DC2626 (red), Mid Block: #8B5CF6 (purple), Defensive Block: #2563EB (blue)
+- Counter-attack: #F59E0B (amber), Open Play: #9CA3AF (gray)
+
+**Test Results (v3)**:
+- 100% possession data available (5472/5472 frames)
+- 2167 phase segments detected across both teams
+- All 7 phase types present in exported phases.json
 
 ---
 
@@ -500,10 +506,11 @@ mplsoccer>=1.1.0       # Visualization
   - Defensive block: Tightened all thresholds
   - Counter-attack: Distance 10m→7.5m, velocity 4→3 m/s
 
-### xThreat Model Analysis ✓
-- Identified issues: Values too high (max 1.491), sign errors
-- Needs replacement with zone-based model (12x8 grid)
-- Should use transition probabilities instead of linear distance
+### xThreat Model Upgrade ✓
+- Replaced hand-crafted linear threat model with pre-computed Markov chain xT grid
+- Source: Karun Singh's xT model (12x8 grid), trained on real match data
+- Grid file: `pipeline/xt_grid_12x8.json`, values range 0.006-0.257
+- No training needed -- loaded pre-built grid
 
 ### Output Path Configuration ✓ (March 27 PM)
 - Fixed output folder mapping permanently
@@ -516,10 +523,38 @@ mplsoccer>=1.1.0       # Visualization
 - Added canvas clipping path using the convex hull polygon in `PitchCanvas.jsx`
 - Dots now only appear inside the white boundary line (convex hull of outfield players)
 
-### Voronoi JSON Size Optimization ✓ (March 27)
-- voronoi.json reduced from 320.9 MB to 2.9 MB (99% reduction)
+### Pitch Control Optimization ✓ (March 27)
+- Renamed `04_compute_voronoi.py` -> `04_compute_pitch_control.py`, `voronoi.json` -> `pitch_control.json`
+- pitch_control.json reduced from 320.9 MB to ~3.2 MB (99% reduction)
 - Three changes applied:
-  1. Filter grid points to only those inside convex hull (pipeline `04_compute_voronoi.py`)
-  2. Reduced grid resolution from 35x22 (770 pts) to 20x13 (260 pts) per frame
+  1. Filter grid points to only those inside attacking team's convex hull (GK excluded via metadata)
+  2. Grid resolution 24x16 (384 pts) per frame
   3. Compact format: `[x, y, teamIdx, time]` arrays with rounded values, no JSON indentation
 - Frontend `PitchCanvas.jsx` updated to read both compact and legacy formats
+- Convex hull now uses attacking team outfield players only (proper GK detection from metadata)
+
+### Pipeline Cleanup ✓ (March 27)
+- Deleted duplicates: step1.py, step2.py, step3.py
+- Deleted old versions: 06_compute_pressing_fixed.py, 06_compute_pressing_old.py
+- Deleted artifacts: d.control_grid, __pycache__/
+- Moved test utilities to tests/: check_possession.py, test_voronoi_logic.py
+
+
+---
+
+## Frontend: Team-Aware Phase Display (2026-03-27)
+
+**Problem**: Phases were shown on a single timeline with no way to tell which team each phase belonged to. With possession-aware classification, each team has different phases at the same time.
+
+**Solution**:
+- Added **team selector** (Both / Team A / Team B) in the dashboard header
+- **Two timelines** shown when "Both" is selected -- one per team, labeled with team name
+- **Phase filtering** respects both phase type filter AND team filter
+- **MetricPanel** shows team names instead of raw IDs (e.g., "VfL Bochum 1848" instead of "DFL-CLU-00000S")
+- Match header shows team names from metadata ("VfL Bochum 1848 vs Bayer 04 Leverkusen")
+
+**Files modified**:
+-  - team selector state, dual timeline rendering, team name lookup
+-  - team selector button styles
+-  - accepts teamName prop, shows in header
+-  - uses teamNameMap for display

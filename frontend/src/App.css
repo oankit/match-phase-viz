@@ -59,3 +59,47 @@
   border-radius: 4px;
   font-size: 14px;
 }
+
+.controls-row {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.team-selector {
+  padding: 10px;
+}
+
+.team-selector h3 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #374151;
+}
+
+.team-selector-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.team-btn {
+  padding: 6px 14px;
+  border: 2px solid #6B7280;
+  border-radius: 4px;
+  background: transparent;
+  color: #6B7280;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.15s;
+}
+
+.team-btn:hover {
+  background: #f3f4f6;
+}
+
+.team-btn.active {
+  background: #374151;
+  border-color: #374151;
+  color: white;
+}

@@ -46,19 +46,32 @@ EXPORT_DOWNSAMPLE_FACTOR = max(1, LOADED_FPS // EXPORT_TARGET_FPS)
 WINDOW_SECONDS = 5.0
 WINDOW_FRAMES = int(WINDOW_SECONDS * TRACKING_FPS)  # 125 frames
 
-# Phase classification thresholds (Path A: tracking-based)
+# Phase classification thresholds (possession-aware)
 # NOTE: Coordinates are NORMALIZED (0-1) not absolute meters
-# REFINED 2026-03-27 v2: Balanced after testing
+# REFINED 2026-03-27 v3: Possession-aware with attacking + defensive phases
 PHASE_THRESHOLDS = {
+    # ---- DEFENSIVE PHASES (team does NOT have ball) ----
     'high_press': {
-        'def_line_height_min': 0.40,  # 42m / 105m, middle ground
-        'ball_x_min': 0.48,  # ~50m, slightly into opponent half
-        'pressure_proxy_min': 1,  # Back to 1, but with stricter position criteria
+        'def_line_height_min': 0.40,  # 42m / 105m, pushing high
+        'ball_x_min': 0.48,  # ~50m, ball in opponent half
+        'pressure_proxy_min': 1,  # At least 1 player pressuring
     },
     'defensive_block': {
-        'def_line_height_max': 0.30,  # 31.5m / 105m, keep tight
-        'compactness_max': 0.18,  # ~360m² / (105*68)², slightly relaxed
-        'ball_x_max': 0.45,  # own defensive third, keep tight
+        'def_line_height_max': 0.30,  # 31.5m / 105m, deep
+        'compactness_max': 0.18,  # ~360m^2 normalized, compact
+        'ball_x_max': 0.45,  # ball in own half
+    },
+    'mid_block': {
+        'def_line_height_min': 0.30,  # Between deep block and high press
+        'def_line_height_max': 0.40,
+    },
+    # ---- ATTACKING PHASES (team HAS ball) ----
+    'attacking': {
+        'ball_x_min': 0.50,  # Ball in opponent half
+        'def_line_height_min': 0.38,  # Team pushed forward
+    },
+    'build_up': {
+        'ball_x_max': 0.50,  # Ball in own half
     },
 }
 

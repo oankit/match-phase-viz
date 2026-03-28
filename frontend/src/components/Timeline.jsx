@@ -3,6 +3,7 @@ import * as d3 from 'd3'
 import './Timeline.css'
 
 const Timeline = ({
+  teamName = '',
   phases = [],
   currentTime = 0,
   duration = 90 * 60,
@@ -14,8 +15,14 @@ const Timeline = ({
 
   // Phase color mapping
   const phaseColors = {
+    // Attacking phases (team has ball)
+    'attacking': '#10B981',
+    'build_up': '#06B6D4',
+    // Defensive phases (team doesn't have ball)
     'high_press': '#DC2626',
+    'mid_block': '#8B5CF6',
     'defensive_block': '#2563EB',
+    // Transition
     'counter_attack': '#F59E0B',
     'open_play': '#9CA3AF'
   }
@@ -81,7 +88,7 @@ const Timeline = ({
           .attr('font-size', '12px')
           .attr('x', xScale(d.start) + 5)
           .attr('y', height / 2)
-          .text(`${d.type} - ${d.team} (${d.duration.toFixed(1)}s)`)
+          .text(`${d.type.replace(/_/g, ' ')} (${d.duration.toFixed(1)}s)`)
 
         const bbox = tooltipText.node().getBBox()
         tooltipRect
@@ -156,13 +163,13 @@ const Timeline = ({
 
   return (
     <div className="timeline-container">
-      <h3>Match Timeline</h3>
+      <h3>{teamName ? `${teamName} - Timeline` : 'Match Timeline'}</h3>
       <svg ref={svgRef} className="timeline-svg"></svg>
       <div className="timeline-legend">
         {Object.entries(phaseColors).map(([type, color]) => (
           <div key={type} className="legend-item">
             <div className="legend-color" style={{ backgroundColor: color }}></div>
-            <span>{type.replace('_', ' ')}</span>
+            <span>{type.replace(/_/g, ' ')}</span>
           </div>
         ))}
       </div>

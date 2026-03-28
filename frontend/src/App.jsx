@@ -11,6 +11,7 @@ function App() {
   const [currentFrame, setCurrentFrame] = useState(0)
   const [phaseFilter, setPhaseFilter] = useState(new Set(['all']))
   const [selectedPhase, setSelectedPhase] = useState(null)
+  const [selectedTeam, setSelectedTeam] = useState(null) // null = both, or team id
   const [playbackSpeed, setPlaybackSpeed] = useState(1)
   const [isPlaying, setIsPlaying] = useState(false)
 
@@ -65,37 +66,80 @@ function App() {
     v.frame_id === currentFrameData?.frame_id
   ) || null
 
-  // Filter phases based on selection
-  const visiblePhases = phaseFilter.has('all')
+  // Build team name lookup from metadata
+  const teams = matchData.metadata?.teams || []
+  const teamNameMap = {}
+  teams.forEach(t => { teamNameMap[t.id] = t.name })
+  const teamIds = teams.map(t => t.id)
+
+  // Auto-select first team if none selected yet
+  if (selectedTeam === null && teamIds.length > 0) {
+    // Don't call setState during render - use effect below
+  }
+
+  // Filter phases based on phase type filter AND team filter
+  const filteredByType = phaseFilter.has('all')
     ? matchData.phases
     : matchData.phases?.filter(p => phaseFilter.has(p.type))
+
+  const visiblePhases = selectedTeam
+    ? filteredByType?.filter(p => p.team === selectedTeam)
+    : filteredByType
 
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
         <h1>Soccer Phase Analytics Dashboard</h1>
         <div className="match-info">
-          <span>Match: {selectedMatch}</span>
+          <span>Match: {teams.map(t => t.name).join(' vs ')}</span>
           <span>Time: {Math.floor(currentTime / 60)}:{String(Math.floor(currentTime % 60)).padStart(2, '0')}</span>
         </div>
       </header>
 
-      <PhaseFilter
-        phaseFilter={phaseFilter}
-        setPhaseFilter={setPhaseFilter}
-      />
+      <div className="controls-row">
+        <PhaseFilter
+          phaseFilter={phaseFilter}
+          setPhaseFilter={setPhaseFilter}
+        />
 
-      <Timeline
-        phases={visiblePhases}
-        currentTime={currentTime}
-        duration={matchData.frames?.[matchData.frames.length - 1]?.t || 90 * 60}
-        onTimeChange={(time) => {
-          const frameIndex = matchData.frames.findIndex(f => f.t >= time)
-          setCurrentFrame(frameIndex >= 0 ? frameIndex : 0)
-        }}
-        selectedPhase={selectedPhase}
-        onPhaseSelect={setSelectedPhase}
-      />
+        <div className="team-selector">
+          <h3>Team View</h3>
+          <div className="team-selector-buttons">
+            <button
+              className={`team-btn ${!selectedTeam ? 'active' : ''}`}
+              onClick={() => setSelectedTeam(null)}
+            >
+              Both
+            </button>
+            {teams.map(t => (
+              <button
+                key={t.id}
+                className={`team-btn ${selectedTeam === t.id ? 'active' : ''}`}
+                onClick={() => setSelectedTeam(t.id)}
+              >
+                {t.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Show one timeline per team when "Both" is selected, or one for selected team */}
+      {(!selectedTeam ? teamIds : [selectedTeam]).map(teamId => (
+        <Timeline
+          key={teamId}
+          teamName={teamNameMap[teamId]}
+          phases={filteredByType?.filter(p => p.team === teamId)}
+          currentTime={currentTime}
+          duration={matchData.frames?.[matchData.frames.length - 1]?.t || 90 * 60}
+          onTimeChange={(time) => {
+            const frameIndex = matchData.frames.findIndex(f => f.t >= time)
+            setCurrentFrame(frameIndex >= 0 ? frameIndex : 0)
+          }}
+          selectedPhase={selectedPhase}
+          onPhaseSelect={setSelectedPhase}
+        />
+      ))}
 
       <div className="dashboard-grid">
         <div className="visualization-panel">
@@ -130,6 +174,7 @@ function App() {
               currentTime >= p.start && currentTime <= p.end
             )}
             formations={matchData.formations}
+            teamNameMap={teamNameMap}
           />
         </div>
       </div>

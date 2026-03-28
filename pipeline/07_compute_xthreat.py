@@ -1,49 +1,39 @@
 """
 Step 7: xThreat (Expected Threat)
 
-Simplified MVP implementation:
-- Divides pitch into 12x8 grid
-- Assigns threat values based on pitch position (forward = higher threat)
-- Computes threat gained/conceded per phase
+Uses a pre-computed xT value surface (Karun Singh, 12x8 grid) trained on
+real match data via a Markov chain possession model. The value at each cell
+represents the long-term probability of scoring from that pitch zone.
 
-NOTE: Full implementation would train a transition matrix from StatsBomb data
-using the socceraction library. This is a placeholder for MVP.
+xT(action) = threat(end_zone) - threat(start_zone)
+
+Source: https://karun.in/blog/expected-threat.html
+Grid:   pipeline/xt_grid_12x8.json (8 rows x 12 cols)
 """
 
+import json
 import numpy as np
 import pandas as pd
+from pathlib import Path
 from tqdm import tqdm
 
 import config
 
 
-def create_simple_threat_surface():
+def load_threat_surface():
     """
-    Create a simple threat surface based on pitch position.
+    Load the pre-computed xT grid (Karun Singh, 12x8).
 
-    Higher x-coordinates (closer to opponent goal) have higher threat.
+    The grid is oriented with row 0 = top of pitch (y=0),
+    columns left-to-right = own goal to opponent goal.
 
     Returns:
-        np.ndarray: (8, 12) threat values (rows=y-zones, cols=x-zones)
+        np.ndarray: (8, 12) threat values
     """
-    grid_w, grid_h = config.XTHREAT_GRID_SIZE
-
-    # Simple model: threat increases linearly with x-position
-    # Centered zones (middle of pitch width) have slightly higher threat
-    threat_surface = np.zeros((grid_h, grid_w))
-
-    for row in range(grid_h):
-        for col in range(grid_w):
-            # X-component: linear increase (0.0 at own goal to 1.0 at opponent goal)
-            x_threat = col / (grid_w - 1)
-
-            # Y-component: centered zones have +10% threat
-            y_center_dist = abs(row - grid_h / 2) / (grid_h / 2)
-            y_bonus = 1.0 + 0.1 * (1.0 - y_center_dist)
-
-            threat_surface[row, col] = x_threat * y_bonus
-
-    return threat_surface
+    grid_path = Path(__file__).parent / 'xt_grid_12x8.json'
+    with open(grid_path) as f:
+        grid = json.load(f)
+    return np.array(grid)
 
 
 def get_zone(x, y, grid_size=(12, 8)):
@@ -123,9 +113,9 @@ def compute_xthreat_per_phase(events_df, phases_df):
     """
     print("Computing xThreat per phase...")
 
-    # Create threat surface
-    threat_surface = create_simple_threat_surface()
-    print(f"  Created {threat_surface.shape} threat surface")
+    # Load pre-computed xT surface (Karun Singh, Markov model)
+    threat_surface = load_threat_surface()
+    print(f"  Loaded xT grid {threat_surface.shape} (range {threat_surface.min():.4f} - {threat_surface.max():.4f})")
 
     # Compute xThreat for each phase
     xthreat_gained = []
@@ -185,7 +175,7 @@ def main(events_df, phases_df):
     print("\n" + "=" * 80)
     print("STEP 7: xTHREAT COMPUTATION")
     print("=" * 80)
-    print("NOTE: Using simplified threat model for MVP")
+    print("Using pre-computed xT grid (Karun Singh, Markov possession model)")
 
     # Compute xThreat per phase
     phases_df_with_xthreat = compute_xthreat_per_phase(events_df, phases_df)

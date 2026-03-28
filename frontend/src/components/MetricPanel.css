@@ -30,8 +30,20 @@
   text-transform: capitalize;
 }
 
+.phase-badge.phase-attacking {
+  background-color: #10B981;
+}
+
+.phase-badge.phase-build_up {
+  background-color: #06B6D4;
+}
+
 .phase-badge.phase-high_press {
   background-color: #DC2626;
+}
+
+.phase-badge.phase-mid_block {
+  background-color: #8B5CF6;
 }
 
 .phase-badge.phase-defensive_block {

@@ -144,6 +144,10 @@ def export_phases(phases_df, output_dir):
             'defensive_line_height': float(row.get('defensive_line_height', 0.0)),
             'compactness': float(row.get('compactness', 0.0)),
             'ppda_proxy': float(row.get('ppda_proxy', 0.0)),
+            'team_length': float(row.get('team_length', 0.0)),
+            'team_width': float(row.get('team_width', 0.0)),
+            'lpw_ratio': float(row.get('lpw_ratio', 0.0)),
+            'stretching_index': float(row.get('stretching_index', 0.0)),
             'xthreat_gained': float(row.get('xthreat_gained', 0.0)),
             'xthreat_conceded': float(row.get('xthreat_conceded', 0.0)),
         })

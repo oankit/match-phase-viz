@@ -3,8 +3,14 @@ import './PhaseFilter.css'
 const PhaseFilter = ({ phaseFilter, setPhaseFilter }) => {
   const phaseTypes = [
     { value: 'all', label: 'All Phases', color: '#6B7280' },
+    // Attacking phases (team has ball)
+    { value: 'attacking', label: 'Attacking', color: '#10B981' },
+    { value: 'build_up', label: 'Build-up', color: '#06B6D4' },
+    // Defensive phases (team doesn't have ball)
     { value: 'high_press', label: 'High Press', color: '#DC2626' },
+    { value: 'mid_block', label: 'Mid Block', color: '#8B5CF6' },
     { value: 'defensive_block', label: 'Defensive Block', color: '#2563EB' },
+    // Transition
     { value: 'counter_attack', label: 'Counter-attack', color: '#F59E0B' },
     { value: 'open_play', label: 'Open Play', color: '#9CA3AF' }
   ]

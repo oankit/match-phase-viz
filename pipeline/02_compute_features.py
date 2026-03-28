@@ -179,9 +179,19 @@ def compute_features_for_frame(tracking_df, frame_idx, player_team_map, window_f
         if len(team_positions) > 0:
             def_line_height = compute_defensive_line_height(team_positions)
             compactness = compute_compactness(team_positions)
+            # Shape metrics (Pracxa et al. 2022)
+            team_length = team_positions[:, 0].max() - team_positions[:, 0].min()
+            team_width = team_positions[:, 1].max() - team_positions[:, 1].min()
+            lpw_ratio = team_length / team_width if team_width > 0 else np.nan
+            centroid = team_positions.mean(axis=0)
+            stretching_index = np.linalg.norm(team_positions - centroid, axis=1).mean()
         else:
             def_line_height = np.nan
             compactness = np.nan
+            team_length = np.nan
+            team_width = np.nan
+            lpw_ratio = np.nan
+            stretching_index = np.nan
 
         # Pressure: how many of THIS team's players are near the ball
         # (This team is pressuring when they have the ball in opponent half)
@@ -195,8 +205,13 @@ def compute_features_for_frame(tracking_df, frame_idx, player_team_map, window_f
             'defensive_line_height': def_line_height,
             'compactness': compactness,
             'pressure_proxy': pressure_proxy,
+            'team_length': team_length,
+            'team_width': team_width,
+            'lpw_ratio': lpw_ratio,
+            'stretching_index': stretching_index,
             'ball_x': ball_x,
             'ball_y': ball_y,
+            'ball_owning_team_id': current_row.get('ball_owning_team_id', None),
         })
 
     return results

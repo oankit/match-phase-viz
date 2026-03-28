@@ -1,7 +1,7 @@
 import MetricCard from './MetricCard'
 import './MetricPanel.css'
 
-const MetricPanel = ({ phases, currentPhase, formations }) => {
+const MetricPanel = ({ phases, currentPhase, formations, teamNameMap = {} }) => {
   // Calculate aggregate metrics for visible phases
   const calculateMetrics = () => {
     if (!phases || phases.length === 0) {
@@ -43,12 +43,29 @@ const MetricPanel = ({ phases, currentPhase, formations }) => {
       }
     }
 
+    // Shape metrics (Pracxa et al. 2022)
+    const avgTeamLength = phases.reduce((sum, p) =>
+      sum + (p.team_length || 0), 0) / phases.length * 105 // Convert to meters
+
+    const avgTeamWidth = phases.reduce((sum, p) =>
+      sum + (p.team_width || 0), 0) / phases.length * 68 // Convert to meters
+
+    const avgLPWRatio = phases.reduce((sum, p) =>
+      sum + (p.lpw_ratio || 0), 0) / phases.length
+
+    const avgStretchingIndex = phases.reduce((sum, p) =>
+      sum + (p.stretching_index || 0), 0) / phases.length * 105 // Approximate to meters
+
     return {
       avgDefensiveLine: avgDefensiveLine.toFixed(1),
       avgCompactness: avgCompactness.toFixed(0),
       avgPPDA: avgPPDA.toFixed(1),
-      totalXThreatGained: totalXThreatGained.toFixed(2),
-      totalXThreatConceded: totalXThreatConceded.toFixed(2),
+      avgTeamLength: avgTeamLength.toFixed(1),
+      avgTeamWidth: avgTeamWidth.toFixed(1),
+      avgLPWRatio: avgLPWRatio.toFixed(2),
+      avgStretchingIndex: avgStretchingIndex.toFixed(1),
+      totalXThreatGained: totalXThreatGained.toFixed(3),
+      totalXThreatConceded: totalXThreatConceded.toFixed(3),
       avgFormationStability: (avgFormationStability * 100).toFixed(0)
     }
   }
@@ -63,7 +80,7 @@ const MetricPanel = ({ phases, currentPhase, formations }) => {
         <div className="current-phase-info">
           <h4>Current Phase</h4>
           <div className={`phase-badge phase-${currentPhase.type}`}>
-            {currentPhase.type.replace('_', ' ')} - {currentPhase.team}
+            {currentPhase.type.replace(/_/g, ' ')} - {teamNameMap[currentPhase.team] || currentPhase.team}
           </div>
         </div>
       )}
@@ -91,6 +108,38 @@ const MetricPanel = ({ phases, currentPhase, formations }) => {
           unit=""
           description="Defenders near ball carrier"
           color="#F59E0B"
+        />
+
+        <MetricCard
+          title="Team Length"
+          value={metrics.avgTeamLength}
+          unit="m"
+          description="Longitudinal spread"
+          color="#0891B2"
+        />
+
+        <MetricCard
+          title="Team Width"
+          value={metrics.avgTeamWidth}
+          unit="m"
+          description="Lateral spread"
+          color="#7C3AED"
+        />
+
+        <MetricCard
+          title="LPW Ratio"
+          value={metrics.avgLPWRatio}
+          unit=""
+          description=">1 = deep/narrow, <1 = wide"
+          color="#DB2777"
+        />
+
+        <MetricCard
+          title="Stretching Index"
+          value={metrics.avgStretchingIndex}
+          unit="m"
+          description="Mean distance from centroid"
+          color="#EA580C"
         />
 
         <MetricCard
@@ -125,10 +174,13 @@ const MetricPanel = ({ phases, currentPhase, formations }) => {
         <div className="phase-counts">
           {phases && phases.length > 0 && (
             <>
-              <div>High Press: {phases.filter(p => p.type === 'high_press').length}</div>
-              <div>Defensive Block: {phases.filter(p => p.type === 'defensive_block').length}</div>
-              <div>Counter-attack: {phases.filter(p => p.type === 'counter_attack').length}</div>
-              <div>Open Play: {phases.filter(p => p.type === 'open_play').length}</div>
+              <div style={{color: '#10B981'}}>Attacking: {phases.filter(p => p.type === 'attacking').length}</div>
+              <div style={{color: '#06B6D4'}}>Build-up: {phases.filter(p => p.type === 'build_up').length}</div>
+              <div style={{color: '#DC2626'}}>High Press: {phases.filter(p => p.type === 'high_press').length}</div>
+              <div style={{color: '#8B5CF6'}}>Mid Block: {phases.filter(p => p.type === 'mid_block').length}</div>
+              <div style={{color: '#2563EB'}}>Defensive Block: {phases.filter(p => p.type === 'defensive_block').length}</div>
+              <div style={{color: '#F59E0B'}}>Counter-attack: {phases.filter(p => p.type === 'counter_attack').length}</div>
+              <div style={{color: '#9CA3AF'}}>Open Play: {phases.filter(p => p.type === 'open_play').length}</div>
             </>
           )}
         </div>
