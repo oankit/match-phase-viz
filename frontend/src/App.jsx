@@ -60,6 +60,11 @@ function App() {
   const currentFrameData = matchData.frames?.[currentFrame] || null
   const currentTime = currentFrameData?.t || 0
 
+  // Find the corresponding voronoi data by frame_id
+  const currentVoronoiData = matchData.voronoi?.find(v =>
+    v.frame_id === currentFrameData?.frame_id
+  ) || null
+
   // Filter phases based on selection
   const visiblePhases = phaseFilter.has('all')
     ? matchData.phases
@@ -96,7 +101,7 @@ function App() {
         <div className="visualization-panel">
           <PitchCanvas
             frame={currentFrameData}
-            voronoi={matchData.voronoi?.[currentFrame]}
+            voronoi={currentVoronoiData}
             formations={matchData.formations}
             selectedPhase={selectedPhase}
             showVoronoi={true}

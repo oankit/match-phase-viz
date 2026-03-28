@@ -15,7 +15,7 @@ def test_frontend_data_loading():
         "frames.json",
         "phases.json",
         "formations.json",
-        "voronoi.json",
+        "pitch_control.json",
         "heatmaps.json"
     ]
 

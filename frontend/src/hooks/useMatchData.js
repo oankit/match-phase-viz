@@ -19,7 +19,7 @@ const useMatchData = (matchId) => {
           fetch(`${basePath}/frames.json`).then(r => r.json()),
           fetch(`${basePath}/phases.json`).then(r => r.json()),
           fetch(`${basePath}/formations.json`).then(r => r.json()),
-          fetch(`${basePath}/voronoi.json`).then(r => r.json()).catch(() => []),
+          fetch(`${basePath}/pitch_control.json`).then(r => r.json()).catch(() => []),
           fetch(`${basePath}/heatmaps.json`).then(r => r.json()).catch(() => [])
         ])
 

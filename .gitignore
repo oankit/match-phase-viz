@@ -1,5 +1,7 @@
 /data
+/frontend/public/data
 /docs/claude convo
 /.claude
 /frontend/node_modules
 CLAUDE.md
+

@@ -481,4 +481,45 @@ mplsoccer>=1.1.0       # Visualization
 
 ---
 
-*Last Updated: 2026-03-26*
+*Last Updated: 2026-03-27*
+
+---
+
+## Updates - March 27, 2026
+
+### Rest Defence Implementation ✓
+- Modified `04_compute_voronoi.py` to add `rest_defence` output format
+- Creates 40x25 grid inside attacking team's convex hull
+- Calculates nearest player for pitch control
+- Validation shows 94.9% control by attacking team, 5.1% vulnerable gaps
+
+### Phase Detection Analysis & Refinement ✓
+- Analyzed J03WN1: Only 1 counter-attack detected (too few)
+- Updated `config.py` thresholds:
+  - High press: def_line_height 0.43→0.38, ball_x 0.5→0.45
+  - Defensive block: Tightened all thresholds
+  - Counter-attack: Distance 10m→7.5m, velocity 4→3 m/s
+
+### xThreat Model Analysis ✓
+- Identified issues: Values too high (max 1.491), sign errors
+- Needs replacement with zone-based model (12x8 grid)
+- Should use transition probabilities instead of linear distance
+
+### Output Path Configuration ✓ (March 27 PM)
+- Fixed output folder mapping permanently
+- Pipeline now outputs directly to `frontend/public/data/`
+- No manual copying needed - files immediately available
+- Falls back to `../output/` if frontend doesn't exist
+
+### Heatmap Clipping Fix ✓ (March 27)
+- Heatmap control grid dots were rendering across the entire pitch
+- Added canvas clipping path using the convex hull polygon in `PitchCanvas.jsx`
+- Dots now only appear inside the white boundary line (convex hull of outfield players)
+
+### Voronoi JSON Size Optimization ✓ (March 27)
+- voronoi.json reduced from 320.9 MB to 2.9 MB (99% reduction)
+- Three changes applied:
+  1. Filter grid points to only those inside convex hull (pipeline `04_compute_voronoi.py`)
+  2. Reduced grid resolution from 35x22 (770 pts) to 20x13 (260 pts) per frame
+  3. Compact format: `[x, y, teamIdx, time]` arrays with rounded values, no JSON indentation
+- Frontend `PitchCanvas.jsx` updated to read both compact and legacy formats

@@ -42,25 +42,77 @@ const PitchCanvas = ({
     // Draw pitch markings
     drawPitchMarkings(ctx, width, height)
 
-    // Draw Voronoi overlay if enabled
-    if (showVoronoi && voronoi?.cells) {
-      ctx.globalAlpha = 0.2
-      voronoi.cells.forEach(cell => {
-        if (cell.polygon && cell.polygon.length > 0) {
-          ctx.fillStyle = teamColors[cell.team_id] || '#999'
+    // Draw Rest Defence overlay if enabled
+    if (showVoronoi && voronoi) {
+      // Debug log to verify data
+      if (voronoi.control_grid) {
+        console.log(`Rest Defence: ${voronoi.control_grid.length} control points`)
+      }
+
+      if (voronoi.control_grid && voronoi.control_grid.length > 0) {
+        // Clip grid dots to the convex hull polygon
+        ctx.save()
+        if (voronoi.convex_hull && voronoi.convex_hull.length > 0) {
           ctx.beginPath()
-          const firstPoint = cell.polygon[0]
-          ctx.moveTo(xScale(firstPoint[0]), yScale(firstPoint[1]))
-
-          cell.polygon.forEach(point => {
-            ctx.lineTo(xScale(point[0]), yScale(point[1]))
+          const firstHullPt = voronoi.convex_hull[0]
+          ctx.moveTo(xScale(firstHullPt[0]), yScale(firstHullPt[1]))
+          voronoi.convex_hull.forEach(pt => {
+            ctx.lineTo(xScale(pt[0]), yScale(pt[1]))
           })
-
           ctx.closePath()
-          ctx.fill()
+          ctx.clip()
         }
-      })
-      ctx.globalAlpha = 1.0
+
+        // teams array maps index to team_id
+        const teams = voronoi.teams || []
+
+        voronoi.control_grid.forEach(pt => {
+          // Compact format: [x, y, teamIdx, time]
+          const [px, py, teamIdx, timeToReach] = Array.isArray(pt)
+            ? pt
+            : [pt.x, pt.y, null, pt.time || 0]
+
+          const controllingTeam = teamIdx !== null ? teams[teamIdx] : pt.team_id
+          const color = teamColors[controllingTeam] || '#666'
+
+          const maxTime = 3.0
+          const normalizedTime = Math.min((timeToReach || 0) / maxTime, 1)
+          const opacity = 0.7 * (1 - normalizedTime) + 0.1
+
+          const radius = 14
+
+          const gradient = ctx.createRadialGradient(
+            xScale(px), yScale(py), 0,
+            xScale(px), yScale(py), radius
+          )
+
+          const alphaHex = Math.floor(opacity * 255).toString(16).padStart(2, '0')
+          gradient.addColorStop(0, `${color}${alphaHex}`)
+          gradient.addColorStop(1, `${color}11`)
+
+          ctx.beginPath()
+          ctx.arc(xScale(px), yScale(py), radius, 0, 2 * Math.PI)
+          ctx.fillStyle = gradient
+          ctx.fill()
+        })
+        ctx.restore()
+      }
+
+      if (voronoi.convex_hull && voronoi.convex_hull.length > 0) {
+        // Draw the convex hull outline (Rest Defence border)
+        ctx.beginPath()
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)'
+        ctx.lineWidth = 2
+        ctx.setLineDash([5, 5])
+        const firstPt = voronoi.convex_hull[0]
+        ctx.moveTo(xScale(firstPt[0]), yScale(firstPt[1]))
+        voronoi.convex_hull.forEach(pt => {
+          ctx.lineTo(xScale(pt[0]), yScale(pt[1]))
+        })
+        ctx.closePath()
+        ctx.stroke()
+        ctx.setLineDash([])
+      }
     }
 
     // Draw players

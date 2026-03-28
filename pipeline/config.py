@@ -48,25 +48,27 @@ WINDOW_FRAMES = int(WINDOW_SECONDS * TRACKING_FPS)  # 125 frames
 
 # Phase classification thresholds (Path A: tracking-based)
 # NOTE: Coordinates are NORMALIZED (0-1) not absolute meters
+# REFINED 2026-03-27 v2: Balanced after testing
 PHASE_THRESHOLDS = {
     'high_press': {
-        'def_line_height_min': 0.43,  # 45m / 105m, high up the pitch
-        'ball_x_min': 0.5,  # opponent half
-        'pressure_proxy_min': 1,  # players within radius (lowered from 3)
+        'def_line_height_min': 0.40,  # 42m / 105m, middle ground
+        'ball_x_min': 0.48,  # ~50m, slightly into opponent half
+        'pressure_proxy_min': 1,  # Back to 1, but with stricter position criteria
     },
     'defensive_block': {
-        'def_line_height_max': 0.33,  # 35m / 105m, deep in own half
-        'compactness_max': 0.20,  # normalized convex hull area (400m² / (105*68)²)
-        'ball_x_max': 0.5,  # own half
+        'def_line_height_max': 0.30,  # 31.5m / 105m, keep tight
+        'compactness_max': 0.18,  # ~360m² / (105*68)², slightly relaxed
+        'ball_x_max': 0.45,  # own defensive third, keep tight
     },
 }
 
 # Path B: Event-based counter-attack detection
 # NOTE: Coordinates are NORMALIZED (0-1) not absolute meters
+# REFINED 2026-03-27: Relaxed to catch more transitions
 COUNTERATTACK_RULES = {
     'start_half': 'defensive',  # Start in defensive half
-    'forward_distance_min': 0.095,  # 10m / 105m in normalized coordinates
-    'forward_velocity_min': 0.038,  # 4 m/s / 105m in normalized units/s
+    'forward_distance_min': 0.071,  # 7.5m / 105m, lowered from 0.095
+    'forward_velocity_min': 0.028,  # 3 m/s / 105m, lowered from 0.038
     'timeout': 15.0,  # seconds
     'set_piece_types': {
         'KICK_OFF', 'FREE_KICK', 'CORNER', 'THROW_IN', 'GOAL_KICK', 'PENALTY'
@@ -103,7 +105,10 @@ AVAILABLE_MATCHES = [
 ]
 
 # Output paths
-OUTPUT_DIR = '../output'
+# Changed to output directly to frontend public folder for immediate access
+OUTPUT_DIR = '../frontend/public/data'
+# Fallback to main output directory if frontend doesn't exist
+BACKUP_OUTPUT_DIR = '../output'
 DATA_DIR = '../data'
 
 # JSON export limits
