@@ -558,3 +558,60 @@ mplsoccer>=1.1.0       # Visualization
 -  - team selector button styles
 -  - accepts teamName prop, shows in header
 -  - uses teamNameMap for display
+
+---
+
+## Shape Graph Formation Detection & Visualization (2026-03-28)
+
+### Pipeline: Shape Graph Algorithm (Brandes et al. 2025)
+
+**File**: `pipeline/05_compute_formations.py`
+
+Replaced Delaunay triangulation as primary edge source with shape graph construction:
+
+- **`compute_shape_graph(coords)`**: Iterative Delaunay edge removal by angular stability (Algorithm 1 from Brandes et al. 2025 / Sotudeh 2026). Edges shared by 2 triangles with stability < 45 degrees are removed. Boundary edges always kept. Falls back to full Delaunay if fewer than 5 edges remain.
+- **`assign_vertical_bands(positions)`**: Gap-based 1D clustering on x-coordinates. Defaults to k=3 bands (defense/midfield/attack), falls back to k=4 or k=2. Uses raw pitch coordinates for meaningful labels.
+- **`detect_formation_label(band_counts)`**: Joins band counts with hyphens (e.g., [4,4,2] -> "4-4-2").
+
+New fields exported per formation: `shape_graph_edges`, `shape_graph_adjacency`, `band_assignments`, `band_counts`, `band_thresholds`, `formation_label`, `raw_mean_positions`.
+
+### Frontend: Live Shape Graph on Pitch (Option A)
+
+**File**: `frontend/src/utils/shapeGraph.js` (NEW)
+
+JavaScript port of the shape graph algorithm using `d3-delaunay`. Computes Delaunay triangulation + iterative edge removal per frame on live player positions.
+
+**File**: `frontend/src/components/PitchCanvas.jsx`
+
+- Added live shape graph overlay: computes shape graph per frame on actual player positions, draws edges on canvas behind player dots
+- GK excluded per team using min-x heuristic (same as pipeline)
+- Added overlay toggle: None / Shape Graph / Pitch Control (replaces old `showVoronoi` boolean)
+
+**File**: `frontend/src/App.jsx`
+
+- Added `overlayMode` state with dropdown selector in playback controls
+
+### Frontend: Formation Comparison Panel (Option B)
+
+**File**: `frontend/src/components/FormationComparisonPanel.jsx` (NEW)
+
+- Side-by-side half-pitch diagrams: in-possession vs out-of-possession formation
+- Uses `raw_mean_positions` (absolute pitch coordinates) for proper display
+- Vertical half-pitch orientation (goal at top, center line at bottom) matching Stats Perform template style
+- Auto-fits positions to fill display area
+- Aggregates shape graph edges by frequency (>40% threshold), uses mode band counts
+- Shows formation labels (e.g., "3-4-2-1") and phase counts
+
+**File**: `frontend/src/utils/drawFormation.js` (NEW)
+
+- `drawFormationGlyph()`: Draws shape graph edges, horizontal band lines, player nodes, formation labels
+- Supports both centroid-normalized positions (with auto-fitting) and raw positions (with `useRawPositions` option)
+
+### Config Changes
+
+**File**: `pipeline/config.py`
+
+```
+SHAPE_GRAPH_ANGLE_THRESHOLD = 45.0   # degrees (Brandes et al. 2025)
+SHAPE_GRAPH_MIN_EDGES = 5            # fallback to Delaunay if fewer
+```

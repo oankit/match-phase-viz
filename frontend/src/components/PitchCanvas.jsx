@@ -1,5 +1,7 @@
 import { useRef, useEffect } from 'react'
 import * as d3 from 'd3'
+import { drawFormationGlyph } from '../utils/drawFormation'
+import { computeShapeGraph } from '../utils/shapeGraph'
 import './PitchCanvas.css'
 
 const PitchCanvas = ({
@@ -7,7 +9,7 @@ const PitchCanvas = ({
   voronoi,
   formations,
   selectedPhase,
-  showVoronoi = true
+  overlayMode = 'shape_graph'
 }) => {
   const canvasRef = useRef(null)
   const svgRef = useRef(null)
@@ -42,13 +44,8 @@ const PitchCanvas = ({
     // Draw pitch markings
     drawPitchMarkings(ctx, width, height)
 
-    // Draw Rest Defence overlay if enabled
-    if (showVoronoi && voronoi) {
-      // Debug log to verify data
-      if (voronoi.control_grid) {
-        console.log(`Rest Defence: ${voronoi.control_grid.length} control points`)
-      }
-
+    // Draw Rest Defence / Convex Hull overlay
+    if (overlayMode === 'convex_hull' && voronoi) {
       if (voronoi.control_grid && voronoi.control_grid.length > 0) {
         // Clip grid dots to the convex hull polygon
         ctx.save()
@@ -115,6 +112,52 @@ const PitchCanvas = ({
       }
     }
 
+    // Draw live shape graph edges per team (before players so edges are behind dots)
+    if (overlayMode === 'shape_graph' && frame.players) {
+      // Group players by team
+      const teamGroups = {}
+      frame.players.forEach(player => {
+        if (!teamGroups[player.team]) teamGroups[player.team] = []
+        teamGroups[player.team].push(player)
+      })
+
+      Object.entries(teamGroups).forEach(([teamId, players]) => {
+        if (players.length < 4) return
+
+        // Exclude goalkeeper: player with minimum x (closest to own goal)
+        let gkIdx = 0
+        let minX = players[0].x
+        for (let i = 1; i < players.length; i++) {
+          if (players[i].x < minX) {
+            minX = players[i].x
+            gkIdx = i
+          }
+        }
+        const outfield = players.filter((_, i) => i !== gkIdx)
+
+        if (outfield.length < 4) return
+
+        const coords = outfield.map(p => [p.x, p.y])
+        const edges = computeShapeGraph(coords)
+
+        // Draw edges on canvas
+        const color = teamColors[teamId] || '#666'
+        ctx.strokeStyle = color
+        ctx.lineWidth = 2
+        ctx.globalAlpha = 0.35
+        ctx.setLineDash([])
+
+        edges.forEach(([i, j]) => {
+          ctx.beginPath()
+          ctx.moveTo(xScale(coords[i][0]), yScale(coords[i][1]))
+          ctx.lineTo(xScale(coords[j][0]), yScale(coords[j][1]))
+          ctx.stroke()
+        })
+
+        ctx.globalAlpha = 1.0
+      })
+    }
+
     // Draw players
     if (frame.players) {
       frame.players.forEach(player => {
@@ -158,53 +201,19 @@ const PitchCanvas = ({
     // Clear SVG for formations
     svg.selectAll('*').remove()
 
-    // Draw formation overlay if available
+    // Draw formation overlay if available (shape graph + band lines)
     if (formations && selectedPhase) {
       const phaseFormations = formations.filter(f => f.phase_id === selectedPhase.id)
 
       phaseFormations.forEach(formation => {
-        const g = svg.append('g')
-          .attr('class', 'formation-overlay')
-          .attr('opacity', 0.6)
-
-        // Draw formation edges
-        if (formation.mean_adjacency) {
-          const positions = formation.mean_positions
-          const adjacency = formation.mean_adjacency
-
-          for (let i = 0; i < positions.length; i++) {
-            for (let j = i + 1; j < positions.length; j++) {
-              if (adjacency[i] && adjacency[i][j] > 0) {
-                g.append('line')
-                  .attr('x1', xScale(positions[i][0]))
-                  .attr('y1', yScale(positions[i][1]))
-                  .attr('x2', xScale(positions[j][0]))
-                  .attr('y2', yScale(positions[j][1]))
-                  .attr('stroke', teamColors[formation.team_id] || '#999')
-                  .attr('stroke-width', adjacency[i][j] * 3)
-                  .attr('stroke-opacity', adjacency[i][j])
-              }
-            }
-          }
-        }
-
-        // Draw formation nodes
-        if (formation.mean_positions) {
-          formation.mean_positions.forEach((pos, i) => {
-            g.append('circle')
-              .attr('cx', xScale(pos[0]))
-              .attr('cy', yScale(pos[1]))
-              .attr('r', 6)
-              .attr('fill', teamColors[formation.team_id] || '#999')
-              .attr('stroke', 'white')
-              .attr('stroke-width', 2)
-              .attr('opacity', formation.stability_scores?.[i] || 0.8)
-          })
-        }
+        drawFormationGlyph(svg, formation, xScale, yScale,
+          teamColors[formation.team_id] || '#999',
+          { showShapeGraph: true, showBandLines: true, showLabel: true, opacity: 0.6 }
+        )
       })
     }
 
-  }, [frame, voronoi, formations, selectedPhase, showVoronoi])
+  }, [frame, voronoi, formations, selectedPhase, overlayMode])
 
   const drawPitchMarkings = (ctx, width, height) => {
     ctx.strokeStyle = 'white'

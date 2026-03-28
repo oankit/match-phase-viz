@@ -98,6 +98,10 @@ MIN_PHASE_DURATION = 5.0  # seconds, drop shorter segments
 FORMATION_TEMPLATE_DURATION = 300.0  # seconds, first 5 minutes per half
 NUM_OUTFIELD_ROLES = 10  # Exclude goalkeeper
 
+# Shape graph parameters (Brandes et al. 2025, Sotudeh 2026)
+SHAPE_GRAPH_ANGLE_THRESHOLD = 45.0   # degrees, edges below this stability are removed
+SHAPE_GRAPH_MIN_EDGES = 5            # fallback to Delaunay if fewer edges remain
+
 # Pressing heatmap
 HEATMAP_GRID_SIZE = (21, 14)  # 5m resolution (105/5, 68/5)
 HEATMAP_BANDWIDTH = 'scott'  # KDE bandwidth method

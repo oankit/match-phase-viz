@@ -1,0 +1,51 @@
+.formation-comparison {
+  padding: 12px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-top: 16px;
+}
+
+.formation-comparison h3 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: #374151;
+  font-weight: 600;
+}
+
+.comparison-row {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.mini-formation {
+  flex: 1;
+  min-width: 200px;
+  max-width: 240px;
+}
+
+.mini-formation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+  padding: 0 4px;
+}
+
+.mini-formation-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.mini-formation-subtitle {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.mini-formation svg {
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}

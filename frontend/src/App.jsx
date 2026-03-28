@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import Timeline from './components/Timeline'
 import PitchCanvas from './components/PitchCanvas'
 import MetricPanel from './components/MetricPanel'
+import FormationComparisonPanel from './components/FormationComparisonPanel'
 import PhaseFilter from './components/PhaseFilter'
 import useMatchData from './hooks/useMatchData'
 import './App.css'
@@ -14,6 +15,7 @@ function App() {
   const [selectedTeam, setSelectedTeam] = useState(null) // null = both, or team id
   const [playbackSpeed, setPlaybackSpeed] = useState(1)
   const [isPlaying, setIsPlaying] = useState(false)
+  const [overlayMode, setOverlayMode] = useState('shape_graph') // 'none', 'convex_hull', 'shape_graph'
 
   const {
     matchData,
@@ -148,7 +150,7 @@ function App() {
             voronoi={currentVoronoiData}
             formations={matchData.formations}
             selectedPhase={selectedPhase}
-            showVoronoi={true}
+            overlayMode={overlayMode}
           />
 
           <div className="playback-controls">
@@ -164,6 +166,14 @@ function App() {
                 <option value={4}>4x</option>
               </select>
             </label>
+            <label>
+              Overlay:
+              <select value={overlayMode} onChange={e => setOverlayMode(e.target.value)}>
+                <option value="none">None</option>
+                <option value="shape_graph">Shape Graph</option>
+                <option value="convex_hull">Pitch Control</option>
+              </select>
+            </label>
           </div>
         </div>
 
@@ -174,6 +184,12 @@ function App() {
               currentTime >= p.start && currentTime <= p.end
             )}
             formations={matchData.formations}
+            teamNameMap={teamNameMap}
+          />
+          <FormationComparisonPanel
+            formations={matchData.formations}
+            phases={visiblePhases}
+            selectedTeam={selectedTeam || teamIds[0]}
             teamNameMap={teamNameMap}
           />
         </div>
