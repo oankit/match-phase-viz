@@ -14,7 +14,7 @@ Phase-Aware Soccer Analytics Dashboard - Python Pipeline
 | 4 | Voronoi |  Complete |  Passing | Polygon-based output |
 | 5 | Formations |  Complete |  Passing | RoleRep algorithm adapted |
 | 6 | Pressing Heatmap |  Complete |  Passing | KDE-based |
-| 7 | xThreat |  Complete |  Passing | 16x12 grid trained on 303 StatsBomb games |
+| 7 | xThreat |  Complete |  Passing | 12x8 Karun Singh grid; per-event xT exported for frontend |
 | 8 | Export JSON |  Complete | � Not tested | Ready for frontend |
 
 ---
@@ -1571,4 +1571,63 @@ When a selected match has no pipeline data yet:
 - `frontend/src/components/MatchStats.jsx`: Replaced hardcoded colors with `getTeamColor()`
 - `frontend/src/components/MetricPanel.jsx`: Replaced hardcoded colors with `getTeamColor()` and CSS variable fallbacks
 
+---
+
+## Threat Timeline - Soccer Ball Icon from react-icons
+
+### Problem
+Goal markers on the Threat Timeline used a hand-drawn SVG soccer ball (circle + pentagon + seam lines + arc segments, ~55 lines of manual D3 drawing code). This was fragile and hard to maintain.
+
+### Solution
+Replaced with `IoFootball` from `react-icons/io5` (Ionicons 5). A `getBallIcon()` helper uses `renderToStaticMarkup` to extract the icon's SVG path data once and caches it. D3 renders the icon as a nested `<svg>` element at each goal position.
+
+### Files Changed
+- `frontend/src/components/ThreatTimeline.jsx`: Imported `IoFootball` from `react-icons/io5`, replaced manual ball drawing with icon rendering
+- `frontend/package.json`: Added `react-icons` dependency, removed `lucide-react`
+
 *Last Updated: 2026-03-29*
+
+---
+
+## Replace Threat Timeline with Game Momentum + Cumulative xT (2026-03-29)
+
+### Problem
+The Threat Timeline (per-minute xThreat bars) was difficult to interpret visually. xT is a per-event metric (per pass/carry), not naturally suited to a bar chart aggregated by minute. The user requested replacing it with two more intuitive visualizations:
+1. A **Game Momentum** chart (tug-of-war style, inspired by The Athletic)
+2. A **Cumulative xT** chart (step-line, similar to the existing Cumulative xG)
+
+### Solution
+
+#### Pipeline Changes
+- **`pipeline/07_compute_xthreat.py`**: Modified `compute_xthreat_per_phase()` and `main()` to also return the enriched `events_df` with per-event `_xt` column (previously discarded after phase aggregation)
+- **`pipeline/08_export_json.py`**: Added `export_event_xt()` function that writes `event_xt.json` containing:
+  - `xt_events`: Events with non-zero xT (354 events for J03WN1) with player_id, team_id, minute, event_type, xT value
+  - `all_events`: All 1429 events (for momentum calculation using pass/shot counts)
+- **`tests/test_full_pipeline.py`**: Updated to capture enriched events_df from step 7 and pass it to step 8
+
+#### Frontend Changes
+- **`frontend/src/components/MomentumChart.jsx`** (new): Tug-of-war bar chart
+  - Per-minute score = `(xG * 5) + (shots * 1) + (passes * 0.05)` (formula from reference)
+  - Home minus away score, 5-minute centered rolling average
+  - Bars colored by dominant team (blue up = home, red down = away)
+  - Goal markers (soccer ball icons), HT line, click-to-seek
+- **`frontend/src/components/CumulativeXT.jsx`** (new): Step-line chart
+  - Cumulative positive xT per team over match time
+  - Area fills + step lines, team-colored
+  - Final xT labels at end of lines, HT line, click-to-seek
+- **`frontend/src/components/MomentumChart.css`** (new)
+- **`frontend/src/components/CumulativeXT.css`** (new)
+- **`frontend/src/App.jsx`**: Replaced `ThreatTimeline` import/usage with `MomentumChart`, added `CumulativeXT` section
+- **`frontend/src/hooks/useMatchData.js`**: Added `event_xt.json` to data loading
+
+#### Data Flow
+```
+Step 7: events_df gets _xt column -> returned alongside phases_df
+Step 8: export_event_xt() writes event_xt.json (354 xT events + 1429 total events)
+Frontend: useMatchData loads event_xt.json -> feeds MomentumChart and CumulativeXT
+```
+
+### Result
+- Game Momentum shows match flow with clear home/away dominance periods
+- Cumulative xT shows threat generation over time (Bochum ~1.7 xT vs Leverkusen ~0.4 xT for J03WN1)
+- ThreatTimeline component preserved in codebase but no longer used in App.jsx

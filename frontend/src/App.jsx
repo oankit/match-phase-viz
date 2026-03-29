@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
-import ThreatTimeline from './components/ThreatTimeline'
+import MomentumChart from './components/MomentumChart'
 import CumulativeXG from './components/CumulativeXG'
+import CumulativeXT from './components/CumulativeXT'
 import Timeline from './components/Timeline'
 import PitchCanvas from './components/PitchCanvas'
 import MetricPanel, { TeamMetricPanel } from './components/MetricPanel'
@@ -405,11 +406,12 @@ function App() {
               </div>
             </div>
 
-            {/* Threat Timeline */}
-            <Collapsible title="Threat Timeline" defaultOpen={true}>
+            {/* Game Momentum */}
+            <Collapsible title="Game Momentum" defaultOpen={true}>
               <div className="dash-card" style={{ marginTop: 8 }}>
-                <ThreatTimeline
-                  phases={matchData.phases}
+                <MomentumChart
+                  eventXt={matchData.eventXt}
+                  shotXg={matchData.shotXg}
                   metadata={matchData.metadata}
                   goals={goals}
                   currentTime={currentTime}
@@ -424,6 +426,19 @@ function App() {
               <div className="dash-card" style={{ marginTop: 8 }}>
                 <CumulativeXG
                   shotXg={matchData.shotXg}
+                  metadata={matchData.metadata}
+                  currentTime={currentTime}
+                  duration={matchDuration}
+                  onTimeChange={handleTimeChange}
+                />
+              </div>
+            </Collapsible>
+
+            {/* Cumulative xT */}
+            <Collapsible title="Cumulative xT" defaultOpen={true}>
+              <div className="dash-card" style={{ marginTop: 8 }}>
+                <CumulativeXT
+                  eventXt={matchData.eventXt}
                   metadata={matchData.metadata}
                   currentTime={currentTime}
                   duration={matchDuration}

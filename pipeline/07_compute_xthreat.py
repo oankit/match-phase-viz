@@ -224,7 +224,7 @@ def compute_xthreat_per_phase(events_df, phases_df):
 
     print(f"  Computed xThreat for {len(phases_df)} phases")
 
-    return phases_df_with_xthreat
+    return phases_df_with_xthreat, events_df
 
 
 def main(events_df, phases_df):
@@ -244,7 +244,7 @@ def main(events_df, phases_df):
     print("Using Karun Singh 12x8 xT grid (Markov possession model)")
 
     # Compute xThreat per phase
-    phases_df_with_xthreat = compute_xthreat_per_phase(events_df, phases_df)
+    phases_df_with_xthreat, events_df_with_xt = compute_xthreat_per_phase(events_df, phases_df)
 
     print("\n[OK] xThreat computation complete")
 
@@ -255,7 +255,7 @@ def main(events_df, phases_df):
     print(f"\nxThreat statistics:")
     print(phases_df_with_xthreat[['xthreat_gained', 'xthreat_conceded']].describe())
 
-    return phases_df_with_xthreat
+    return phases_df_with_xthreat, events_df_with_xt
 
 
 if __name__ == "__main__":

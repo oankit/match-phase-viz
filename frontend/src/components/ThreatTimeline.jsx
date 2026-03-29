@@ -1,7 +1,22 @@
-import { useRef, useEffect, useMemo } from 'react'
+import { useRef, useEffect, useMemo, createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import * as d3 from 'd3'
-import { getTeamColor } from '../utils/matchCatalog'
+import { IoFootball } from 'react-icons/io5'
 import './ThreatTimeline.css'
+
+let _ballIconCache = null
+function getBallIcon() {
+  if (!_ballIconCache) {
+    const markup = renderToStaticMarkup(createElement(IoFootball))
+    const vbMatch = markup.match(/viewBox="([^"]*)"/)
+    const innerMatch = markup.match(/<svg[^>]*>([\s\S]*)<\/svg>/)
+    _ballIconCache = {
+      viewBox: vbMatch ? vbMatch[1] : '0 0 512 512',
+      inner: innerMatch ? innerMatch[1] : ''
+    }
+  }
+  return _ballIconCache
+}
 
 const ThreatTimeline = ({
   phases = [],
@@ -18,8 +33,8 @@ const ThreatTimeline = ({
   const awayTeam = teams[1] || { id: '', name: 'Away' }
 
   const teamColors = {
-    [homeTeam.id]: getTeamColor(homeTeam.id),
-    [awayTeam.id]: getTeamColor(awayTeam.id),
+    [homeTeam.id]: '#2b6da4',
+    [awayTeam.id]: '#c83c35',
   }
 
   const minuteData = useMemo(() => {
@@ -34,28 +49,24 @@ const ThreatTimeline = ({
 
     phases.forEach(phase => {
       if (!phase.team || phase.xthreat_gained === undefined) return
+      if (phase.xthreat_gained <= 0) return
 
-      const startMin = Math.floor(phase.start / 60)
       const endMin = Math.floor(phase.end / 60)
-      const phaseMinutes = Math.max(1, endMin - startMin + 1)
-      const perMinuteGain = Math.abs(phase.xthreat_gained) / phaseMinutes
-
-      for (let m = startMin; m <= endMin && m < totalMinutes; m++) {
-        if (bins[m]) {
-          bins[m][phase.team] += perMinuteGain
-        }
+      if (endMin >= 0 && endMin < totalMinutes && bins[endMin]) {
+        bins[endMin][phase.team] += phase.xthreat_gained
       }
     })
 
-    const alpha = 0.35
-    const smoothed = bins.map((bin, i) => {
+    const alpha = 0.82
+    const smoothed = []
+    bins.forEach((bin, i) => {
       const result = { ...bin }
       if (i > 0) {
         ;[homeTeam.id, awayTeam.id].forEach(teamId => {
-          result[teamId] = alpha * bin[teamId] + (1 - alpha) * (bins[i - 1][teamId] || 0)
+          result[teamId] = alpha * bin[teamId] + (1 - alpha) * (smoothed[i - 1][teamId] || 0)
         })
       }
-      return result
+      smoothed.push(result)
     })
 
     return smoothed
@@ -105,25 +116,8 @@ const ThreatTimeline = ({
       .attr('y1', height / 2)
       .attr('x2', width)
       .attr('y2', height / 2)
-      .attr('stroke', '#e5e1d8')
+      .attr('stroke', '#ddd9d3')
       .attr('stroke-width', 1)
-
-    // Half-time line
-    const htX = xScale(45)
-    if (htX !== undefined) {
-      const htCenter = htX + xScale.bandwidth() / 2
-      g.append('line')
-        .attr('x1', htCenter).attr('x2', htCenter)
-        .attr('y1', 0).attr('y2', height)
-        .attr('stroke', '#ccc').attr('stroke-dasharray', '4,4').attr('stroke-width', 1)
-
-      g.append('text')
-        .attr('x', htCenter).attr('y', -6)
-        .attr('text-anchor', 'middle')
-        .attr('font-size', 9).attr('fill', '#999')
-        .attr('font-family', "'Plus Jakarta Sans', sans-serif")
-        .text('HT')
-    }
 
     // Home team bars (up)
     g.selectAll('.bar-home')
@@ -151,11 +145,12 @@ const ThreatTimeline = ({
       .attr('fill', teamColors[awayTeam.id])
       .attr('opacity', 0.85)
 
-    // Goal markers
+    // Goal markers (soccer ball icons above/below the chart)
     if (goals && goals.length > 0) {
-      const ballRadius = 7
+      const R = 8
 
       goals.forEach(goal => {
+        // Convert 0-indexed goal minute to 1-indexed for display (minute 0 = 1st minute)
         const goalMinute = goal.minute + 1
         const barX = xScale(goalMinute)
         if (barX === undefined) return
@@ -164,34 +159,24 @@ const ThreatTimeline = ({
         const isHome = goal.team_id === homeTeam.id
         const cy = isHome ? -goalMarkerSpace / 2 : height + goalMarkerSpace / 2
 
-        const ballG = g.append('g')
-          .attr('transform', `translate(${cx}, ${cy})`)
-
-        ballG.append('circle')
-          .attr('r', ballRadius)
-          .attr('fill', 'white')
-          .attr('stroke', '#333')
-          .attr('stroke-width', 1.5)
-
-        const pentR = ballRadius * 0.45
-        for (let i = 0; i < 5; i++) {
-          const angle = (i * 72 - 90) * (Math.PI / 180)
-          ballG.append('circle')
-            .attr('cx', pentR * Math.cos(angle))
-            .attr('cy', pentR * Math.sin(angle))
-            .attr('r', 1.2)
-            .attr('fill', '#333')
-        }
-        ballG.append('circle')
-          .attr('r', 1.2)
+        const { viewBox, inner } = getBallIcon()
+        const size = R * 2
+        const ballSvg = g.append('svg')
+          .attr('x', cx - R)
+          .attr('y', cy - R)
+          .attr('width', size)
+          .attr('height', size)
+          .attr('viewBox', viewBox)
           .attr('fill', '#333')
+        ballSvg.html(inner)
 
+        // Vertical tick connecting ball to bar area
         g.append('line')
           .attr('x1', cx)
           .attr('y1', isHome ? -2 : height + 2)
           .attr('x2', cx)
-          .attr('y2', isHome ? cy + ballRadius + 2 : cy - ballRadius - 2)
-          .attr('stroke', '#aaa')
+          .attr('y2', isHome ? cy + R + 2 : cy - R - 2)
+          .attr('stroke', '#bbb')
           .attr('stroke-width', 1)
           .attr('stroke-dasharray', '2,2')
       })
@@ -225,10 +210,10 @@ const ThreatTimeline = ({
         .attr('y1', -goalMarkerSpace)
         .attr('x2', currentX + xScale.bandwidth() / 2)
         .attr('y2', height + goalMarkerSpace)
-        .attr('stroke', '#333')
+        .attr('stroke', '#1a1a1a')
         .attr('stroke-width', 1.5)
         .attr('stroke-dasharray', '4,3')
-        .attr('opacity', 0.5)
+        .attr('opacity', 0.4)
     }
 
     // Click interaction
@@ -248,7 +233,7 @@ const ThreatTimeline = ({
   }, [minuteData, goals, currentTime, duration, homeTeam.id, awayTeam.id])
 
   return (
-    <div className="threat-timeline">
+    <div>
       <div className="threat-timeline-header">
         <span className="threat-team-label home" style={{ color: teamColors[homeTeam.id] }}>
           {homeTeam.name}

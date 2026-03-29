@@ -15,13 +15,14 @@ const useMatchData = (matchId) => {
         // Load all JSON files for this match
         const basePath = `/data/${matchId}`
 
-        const [metadata, frames, phases, voronoi, heatmaps, shotXg] = await Promise.all([
+        const [metadata, frames, phases, voronoi, heatmaps, shotXg, eventXt] = await Promise.all([
           fetch(`${basePath}/metadata.json`).then(r => r.json()),
           fetch(`${basePath}/frames.json`).then(r => r.json()),
           fetch(`${basePath}/phases.json`).then(r => r.json()),
           fetch(`${basePath}/pitch_control.json`).then(r => r.json()).catch(() => []),
           fetch(`${basePath}/heatmaps.json`).then(r => r.json()).catch(() => []),
-          fetch(`${basePath}/shot_xg.json`).then(r => r.json()).catch(() => null)
+          fetch(`${basePath}/shot_xg.json`).then(r => r.json()).catch(() => null),
+          fetch(`${basePath}/event_xt.json`).then(r => r.json()).catch(() => null)
         ])
 
         setMatchData({
@@ -31,7 +32,8 @@ const useMatchData = (matchId) => {
           phases,
           voronoi,
           heatmaps,
-          shotXg
+          shotXg,
+          eventXt
         })
       } catch (err) {
         console.error('Error loading match data:', err)

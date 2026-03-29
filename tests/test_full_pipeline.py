@@ -121,7 +121,7 @@ print(f"[OK] Computed {len(heatmaps)} pressing heatmaps\n")
 print("="*80)
 print("[STEP 7] Computing xThreat")
 print("="*80)
-phases_df_with_xthreat = step7.main(events_df, phases_df)
+phases_df_with_xthreat, events_df_with_xt = step7.main(events_df, phases_df)
 print(f"[OK] Computed xThreat for {len(phases_df_with_xthreat)} phases\n")
 
 # ============================================================================
@@ -151,7 +151,7 @@ exported_files = step8.main(
     heatmaps=heatmaps,
     target_fps=4,
     match_duration=match_duration,
-    events_df=events_df,
+    events_df=events_df_with_xt,
     period_2_offset_secs=p2_offset_secs,
     match_stats=match_stats,
     player_stats=player_stats,

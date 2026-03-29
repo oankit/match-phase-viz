@@ -505,6 +505,83 @@ def export_shot_xg(events_df, tracking_dataset, output_dir, period_2_offset_secs
     return str(shot_xg_path)
 
 
+def export_event_xt(events_df, tracking_dataset, output_dir):
+    """
+    Export per-event xT data for the momentum and cumulative xT charts.
+
+    Args:
+        events_df: Events DataFrame with '_xt' column from Step 7
+        tracking_dataset: Kloppy TrackingDataset object
+        output_dir: Output directory path
+
+    Returns:
+        str: Path to exported event_xt.json
+    """
+    print("\nExporting per-event xT data...")
+
+    if '_xt' not in events_df.columns:
+        print("  WARNING: '_xt' column not found in events_df. Skipping xT export.")
+        return None
+
+    teams = tracking_dataset.metadata.teams
+    home_id = teams[0].team_id
+    away_id = teams[1].team_id
+
+    player_name_map = {}
+    for team in teams:
+        for player in team.players:
+            player_name_map[player.player_id] = player.name if player.name else player.player_id
+
+    # Filter to events with non-zero xT (passes, carries, etc.)
+    xt_events = events_df[events_df['_xt'].abs() > 0.001].copy()
+
+    event_list = []
+    for _, row in xt_events.iterrows():
+        match_seconds = row['timestamp'].total_seconds()
+        minute = match_seconds / 60
+
+        event_list.append({
+            'minute': round(minute, 2),
+            'match_seconds': round(match_seconds, 1),
+            'team_id': row['team_id'],
+            'player_id': row['player_id'],
+            'player_name': player_name_map.get(row['player_id'], row['player_id']),
+            'event_type': str(row.get('event_type', '')),
+            'xt': round(float(row['_xt']), 4),
+        })
+
+    # Also include all events (including zero-xT) for momentum calculation
+    # (momentum uses pass counts, shot counts, etc.)
+    all_events_list = []
+    for _, row in events_df.iterrows():
+        match_seconds = row['timestamp'].total_seconds()
+        minute = match_seconds / 60
+
+        all_events_list.append({
+            'minute': round(minute, 2),
+            'match_seconds': round(match_seconds, 1),
+            'team_id': row['team_id'],
+            'event_type': str(row.get('event_type', '')),
+            'result': str(row.get('result', '')),
+            'xt': round(float(row.get('_xt', 0)), 4),
+        })
+
+    output = {
+        'home_team_id': home_id,
+        'away_team_id': away_id,
+        'xt_events': event_list,
+        'all_events': all_events_list,
+    }
+
+    event_xt_path = output_dir / 'event_xt.json'
+    with open(event_xt_path, 'w', encoding='utf-8') as f:
+        json.dump(output, f, indent=2, ensure_ascii=True)
+
+    print(f"  Exported {len(event_list)} xT events and {len(all_events_list)} total events to {event_xt_path}")
+
+    return str(event_xt_path)
+
+
 def main(match_id, tracking_dataset, tracking_df, phases_df, formations, voronoi_data, heatmaps,
          target_fps=None, output_base_dir=None, events_df=None, match_duration=None,
          period_2_offset_secs=None, match_stats=None, player_stats=None):
@@ -598,6 +675,12 @@ def main(match_id, tracking_dataset, tracking_df, phases_df, formations, voronoi
             events_df, tracking_dataset, output_dir,
             period_2_offset_secs=period_2_offset_secs,
         )
+
+    # Export per-event xT data if available
+    if events_df is not None and '_xt' in events_df.columns:
+        xt_path = export_event_xt(events_df, tracking_dataset, output_dir)
+        if xt_path:
+            exported_files['event_xt'] = xt_path
 
     print("\n[OK] Export complete")
     print(f"\nExported files:")
