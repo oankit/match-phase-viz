@@ -290,7 +290,7 @@ const MetricPanel = ({ phases, currentTime, homeTeam, awayTeam, teamNameMap = {}
     return METRICS.map(m => {
       const hv = homePhase ? (homePhase[m.key] || 0) * m.scale : null
       const av = awayPhase ? (awayPhase[m.key] || 0) * m.scale : null
-      return {
+    return {
         ...m,
         homeVal: hv !== null ? hv.toFixed(m.decimals) : '--',
         awayVal: av !== null ? av.toFixed(m.decimals) : '--',
@@ -333,13 +333,13 @@ const MetricPanel = ({ phases, currentTime, homeTeam, awayTeam, teamNameMap = {}
         <span className="live-team-name" style={{ color: getTeamColor(awayTeam?.id) }}>
           {awayTeam?.name || 'Away'}
         </span>
-      </div>
+          </div>
 
       <div className="live-phase-row">
         <span className="live-phase-side">{phaseBadge(homePhase)}</span>
         <span className="live-label">Current Phase</span>
         <span className="live-phase-side">{phaseBadge(awayPhase)}</span>
-      </div>
+        </div>
 
       <div className="live-metrics-grid">
         {liveMetrics.map(m => (

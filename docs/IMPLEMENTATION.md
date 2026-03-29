@@ -1635,3 +1635,97 @@ Frontend: useMatchData loads event_xt.json -> feeds MomentumChart and PlayerXT
 - Player xT identifies ball progression engines (e.g., I. Ordets 0.70 xT for Bochum vs Frimpong 0.18 for Leverkusen)
 - Chart order: Game Momentum -> Cumulative xG -> xT Contributions
 - ThreatTimeline and CumulativeXT components preserved in codebase but no longer used
+
+---
+
+## Pitch Overlay: High-xT Pass Arrows & High-xG Shot Markers
+
+### Goal
+Highlight dangerous passes (high expected threat) and shots (high expected goals) directly on the pitch view, so users can see spatial context of key actions near the current playback time.
+
+### Pipeline Changes
+
+**File**: `pipeline/08_export_json.py`
+
+- **`export_event_xt()`**: Now includes `start_x`, `start_y`, `end_x`, `end_y` (normalized 0-1 coordinates) for each xT event, sourced from `coordinates_x/y` and `end_coordinates_x/y` in the events DataFrame
+- **`export_shot_xg()`**: Now includes `x`, `y` (normalized 0-1 coordinates) for each shot, sourced from `coordinates_x/y`
+
+### Frontend Changes
+
+**File**: `frontend/src/components/PitchCanvas.jsx`
+
+- New props: `eventXt`, `shotXg`, `currentTime`
+- **High-xT pass arrows** (threshold: xT >= 0.04):
+  - Filters events within +/- 30 second window around `currentTime`
+  - Draws team-colored arrows from pass start to end with white outline for contrast
+  - Arrowhead at destination, xT value label at midpoint
+  - Opacity fades based on temporal distance from current time
+- **High-xG shot markers** (threshold: xG >= 0.08):
+  - Filters shots within +/- 30 second window around `currentTime`
+  - Draws concentric ring at shot location, radius proportional to xG value
+  - Goals get a filled inner circle
+  - "GOAL xG 0.49" or "xG 0.09" label above the marker
+- Both overlays render after formation/shape graph overlays but before player dots and ball
+
+**File**: `frontend/src/App.jsx`
+
+- Passes `eventXt={matchData.eventXt}`, `shotXg={matchData.shotXg}`, `currentTime={currentTime}` to `PitchCanvas`
+
+### Constants
+- `XT_THRESHOLD = 0.04` (top ~4% of passes)
+- `XG_THRESHOLD = 0.08` (above average shot quality)
+- `TIME_WINDOW = 30` seconds (+/- from current time)
+
+---
+
+## Attacking Direction Awareness
+
+### Problem
+Kloppy's normalized coordinates (0-1) do NOT normalize attacking direction between halves. Teams switch ends at halftime, so the same team attacks toward x=0 in one half and x=1 in the other. This affected:
+- **Step 2**: Defensive line height always assumed "lower x = deeper"
+- **Step 7**: xT grid lookup assumed all teams attack toward x=1
+- **Step 3**: Phase classifier thresholds for `ball_x` and `defensive_line_height` were direction-dependent
+- **Frontend**: Forward-pass filter assumed home always attacks right
+
+### Detection
+Direction is auto-detected per team per period from shot locations:
+```python
+def _detect_attacking_direction(events_df, team_ids):
+    # avg shot x > 0.5 => attacks right, else attacks left
+    # Fallback: forward pass ratio, then default (home attacks right)
+    # Returns: {(team_id, period_id): attacking_right}
+```
+
+For match J03WN1:
+- Period 1: Bochum (home) attacks LEFT, Leverkusen (away) attacks RIGHT
+- Period 2: Bochum attacks RIGHT, Leverkusen attacks LEFT
+
+### Pipeline Fixes
+
+**File**: `pipeline/02_compute_features.py`
+- Added `_detect_attacking_direction()` (same logic as step 9)
+- `main()` accepts optional `events_df` for direction detection
+- `compute_defensive_line_height()` now takes `attacking_right` param:
+  - When `attacking_right=True`: deepest = lowest x (unchanged)
+  - When `attacking_right=False`: deepest = highest x, then mirrors to 'attacks right' space
+- `ball_x` is mirrored to 'attacks right' space per team per frame for consistent phase thresholds
+
+**File**: `pipeline/07_compute_xthreat.py`
+- Added `_detect_attacking_direction()` (same logic)
+- `compute_xthreat_for_event()` now takes `attacking_right` param
+- When `attacking_right=False`, coordinates are mirrored (x = 1 - x) before xT grid lookup
+- Result: xT values now correctly reflect threat relative to the opponent's goal regardless of period
+
+**File**: `pipeline/08_export_json.py`
+- `export_event_xt()` now includes `attacking_direction` map in the JSON output
+- Each xT event includes `period_id` for frontend direction lookup
+
+**File**: `tests/test_full_pipeline.py`
+- Step 2 call now passes `events_df=events_df`
+
+### Frontend Fix
+
+**File**: `frontend/src/components/PitchCanvas.jsx`
+- Forward-pass filter uses `attacking_direction` from `eventXt` JSON
+- Looks up `dirMap[teamId_periodId]` to determine if team attacks right
+- Forward = `end_x > start_x` when attacking right, `end_x < start_x` when attacking left

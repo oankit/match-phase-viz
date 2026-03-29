@@ -475,7 +475,7 @@ def export_shot_xg(events_df, tracking_dataset, output_dir, period_2_offset_secs
 
         is_goal = row.get('result') == 'GOAL'
 
-        shot_list.append({
+        shot_entry = {
             'minute': round(minute, 2),
             'match_seconds': round(match_seconds, 1),
             'team_id': team_id,
@@ -484,7 +484,15 @@ def export_shot_xg(events_df, tracking_dataset, output_dir, period_2_offset_secs
             'xg': round(xg, 3),
             'is_goal': bool(is_goal),
             'result': str(row.get('result', '')),
-        })
+        }
+
+        # Include coordinates for pitch overlay (normalized 0-1)
+        if not pd.isna(row.get('coordinates_x', float('nan'))):
+            shot_entry['x'] = round(float(row['coordinates_x']), 4)
+        if not pd.isna(row.get('coordinates_y', float('nan'))):
+            shot_entry['y'] = round(float(row['coordinates_y']), 4)
+
+        shot_list.append(shot_entry)
 
     # timestamps already in continuous match time
     match_duration_secs = events_df['timestamp'].max().total_seconds()
@@ -540,15 +548,24 @@ def export_event_xt(events_df, tracking_dataset, output_dir):
         match_seconds = row['timestamp'].total_seconds()
         minute = match_seconds / 60
 
-        event_list.append({
+        entry = {
             'minute': round(minute, 2),
             'match_seconds': round(match_seconds, 1),
+            'period_id': int(row['period_id']),
             'team_id': row['team_id'],
             'player_id': row['player_id'],
             'player_name': player_name_map.get(row['player_id'], row['player_id']),
             'event_type': str(row.get('event_type', '')),
             'xt': round(float(row['_xt']), 4),
-        })
+        }
+
+        # Include coordinates for pitch overlay (normalized 0-1)
+        for col, key in [('coordinates_x', 'start_x'), ('coordinates_y', 'start_y'),
+                         ('end_coordinates_x', 'end_x'), ('end_coordinates_y', 'end_y')]:
+            if col in row.index and not pd.isna(row[col]):
+                entry[key] = round(float(row[col]), 4)
+
+        event_list.append(entry)
 
     # Also include all events (including zero-xT) for momentum calculation
     # (momentum uses pass counts, shot counts, etc.)
@@ -566,9 +583,19 @@ def export_event_xt(events_df, tracking_dataset, output_dir):
             'xt': round(float(row.get('_xt', 0)), 4),
         })
 
+    # Detect attacking direction per team per period for frontend use
+    from importlib import import_module as _imp
+    _s9 = _imp('09_compute_match_stats')
+    _dir_map = _s9._detect_attacking_direction(events_df, [home_id, away_id])
+    attacking_direction = {
+        f"{tid}_{pid}": bool(ar)
+        for (tid, pid), ar in _dir_map.items()
+    }
+
     output = {
         'home_team_id': home_id,
         'away_team_id': away_id,
+        'attacking_direction': attacking_direction,
         'xt_events': event_list,
         'all_events': all_events_list,
     }

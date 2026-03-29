@@ -73,7 +73,7 @@ def get_zone(x, y, grid_size=(12, 8)):
     return col, row
 
 
-def compute_xthreat_for_event(event, threat_surface):
+def compute_xthreat_for_event(event, threat_surface, attacking_right=True):
     """
     Compute xThreat for a single event.
 
@@ -81,9 +81,14 @@ def compute_xthreat_for_event(event, threat_surface):
     For shots:  xThreat = 0.0 (terminal events, scoring prob already in grid)
     For goals:  xThreat = 0.0 (shown as markers, not in xT aggregation)
 
+    The xT grid assumes the team attacks toward x=1 (right). When a team
+    attacks left (attacking_right=False), coordinates are mirrored before
+    the grid lookup so the threat values remain correct.
+
     Args:
         event: Event row from events_df
         threat_surface: (8, 12) threat surface
+        attacking_right: Whether the team attacks toward x=1 in this period
 
     Returns:
         float: xThreat value, or 0.0 if coordinates unavailable
@@ -102,6 +107,11 @@ def compute_xthreat_for_event(event, threat_surface):
 
     end_x = event.get('end_coordinates_x', np.nan)
     end_y = event.get('end_coordinates_y', np.nan)
+
+    # Mirror coordinates when attacking left so the grid lookup is correct
+    if not attacking_right:
+        start_x = 1.0 - start_x if not pd.isna(start_x) else start_x
+        end_x = 1.0 - end_x if not pd.isna(end_x) else end_x
 
     start_col, start_row = get_zone(start_x, start_y)
     end_col, end_row = get_zone(end_x, end_y)
@@ -129,6 +139,40 @@ def _shot_xg(x, y):
     return max(0.02, min(0.50, 0.6 * (angle / 90) ** 1.3))
 
 
+def _detect_attacking_direction(events_df, team_ids):
+    """Auto-detect attacking direction per team per period from shot locations.
+
+    Returns dict: {(team_id, period_id): attacking_right}
+    """
+    direction = {}
+    shots = events_df[events_df['event_type'] == 'SHOT']
+
+    for team_id in team_ids:
+        for period in [1, 2]:
+            team_shots = shots[
+                (shots['team_id'] == team_id) &
+                (shots['period_id'] == period) &
+                (shots['coordinates_x'].notna())
+            ]
+            if len(team_shots) > 0:
+                avg_x = team_shots['coordinates_x'].mean()
+                direction[(team_id, period)] = avg_x > 0.5
+            else:
+                pass_data = events_df[
+                    (events_df['team_id'] == team_id) &
+                    (events_df['period_id'] == period) &
+                    (events_df['event_type'] == 'PASS') &
+                    (events_df['end_coordinates_x'].notna())
+                ]
+                if len(pass_data) > 0:
+                    fwd = (pass_data['end_coordinates_x'] > pass_data['coordinates_x']).mean()
+                    direction[(team_id, period)] = fwd > 0.5
+                else:
+                    direction[(team_id, period)] = (team_id == team_ids[0])
+
+    return direction
+
+
 def compute_xthreat_per_phase(events_df, phases_df):
     """
     Compute aggregated xThreat per phase segment.
@@ -151,10 +195,19 @@ def compute_xthreat_per_phase(events_df, phases_df):
     threat_surface = load_threat_surface()
     print(f"  Loaded xT grid {threat_surface.shape} (range {threat_surface.min():.4f} - {threat_surface.max():.4f})")
 
-    # Pre-compute xThreat for every event once
+    # Detect attacking direction per team per period (reuses Step 9 logic)
+    team_ids = sorted([t for t in events_df['team_id'].unique() if t is not None])
+    direction_map = _detect_attacking_direction(events_df, team_ids)
+    for key, ar in direction_map.items():
+        print(f"  Direction: team={key[0][-5:]}, period={key[1]}, attacks_right={ar}")
+
+    # Pre-compute xThreat for every event once, with direction-aware mirroring
     events_df = events_df.copy()
     events_df['_xt'] = events_df.apply(
-        lambda e: compute_xthreat_for_event(e, threat_surface), axis=1
+        lambda e: compute_xthreat_for_event(
+            e, threat_surface,
+            attacking_right=direction_map.get((e['team_id'], e['period_id']), True)
+        ), axis=1
     )
 
     # Pass 1: exact match (each event to at most one phase)

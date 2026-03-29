@@ -343,6 +343,7 @@ function App() {
                     key={teamId}
                     teamName={teamNameMap[teamId]}
                     phases={filteredByType?.filter(p => p.team === teamId)}
+                    goals={goals}
                     currentTime={currentTime}
                     duration={matchDuration}
                     onTimeChange={handleTimeChange}
@@ -382,6 +383,9 @@ function App() {
                 selectedPhase={selectedPhase}
                 overlayMode={overlayMode}
                 metadata={matchData.metadata}
+                eventXt={matchData.eventXt}
+                shotXg={matchData.shotXg}
+                currentTime={currentTime}
               />
               <div className="playback-controls">
                 <div className="speed-selector">
@@ -412,6 +416,72 @@ function App() {
                 </button>
                 <span className="playback-time">
                   {Math.floor(currentTime / 60)}:{String(Math.floor(currentTime % 60)).padStart(2, '0')}
+                </span>
+                <div className="scrubber-container">
+                  <div className="scrubber-track-wrapper">
+                    <input
+                      type="range"
+                      className="scrubber-bar"
+                      min={0}
+                      max={matchDuration}
+                      step={0.25}
+                      value={currentTime}
+                      onChange={(e) => handleTimeChange(Number(e.target.value))}
+                      style={{ '--progress': `${(currentTime / matchDuration) * 100}%` }}
+                    />
+                    <div className="scrubber-markers">
+                      {(matchData.eventXt?.xt_events || []).filter(e => e.xt >= 0.06).map((e, i) => (
+                        <svg
+                          key={`xt-${i}`}
+                          className="scrubber-marker scrubber-marker-xt"
+                          style={{ left: `${(e.match_seconds / matchDuration) * 100}%` }}
+                          viewBox="0 0 10 10"
+                          title={`xT ${e.xt.toFixed(2)} at ${Math.floor(e.match_seconds / 60)}'`}
+                        >
+                          <polygon points="5,0 10,10 0,10" fill={e.team_id === homeTeam.id ? homeColor : awayColor} />
+                        </svg>
+                      ))}
+                      {(matchData.shotXg?.shots || []).filter(s => s.xg >= 0.15).map((s, i) => (
+                        <svg
+                          key={`xg-${i}`}
+                          className="scrubber-marker scrubber-marker-xg"
+                          style={{ left: `${(s.match_seconds / matchDuration) * 100}%` }}
+                          viewBox="0 0 10 10"
+                          title={`xG ${s.xg.toFixed(2)} at ${Math.floor(s.match_seconds / 60)}'`}
+                        >
+                          <rect x="1" y="1" width="8" height="8" rx="1.5" fill={s.team_id === homeTeam.id ? homeColor : awayColor} />
+                        </svg>
+                      ))}
+                      {goals.map((g, i) => (
+                        <svg
+                          key={`goal-${i}`}
+                          className="scrubber-marker scrubber-marker-goal"
+                          style={{ left: `${((g.match_seconds ?? g.minute * 60) / matchDuration) * 100}%` }}
+                          viewBox="0 0 12 12"
+                          title={`Goal ${Math.floor((g.match_seconds ?? g.minute * 60) / 60)}'`}
+                        >
+                          <circle cx="6" cy="6" r="5" fill={g.team_id === homeTeam.id ? homeColor : awayColor} stroke="#fff" strokeWidth="1.5" />
+                        </svg>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <span className="playback-time playback-duration">
+                  {Math.floor(matchDuration / 60)}:{String(Math.floor(matchDuration % 60)).padStart(2, '0')}
+                </span>
+              </div>
+              <div className="scrubber-legend">
+                <span className="scrubber-legend-item">
+                  <svg width="10" height="10" viewBox="0 0 12 12"><circle cx="6" cy="6" r="5" fill="var(--text-muted)" stroke="#fff" strokeWidth="1.5"/></svg>
+                  Goal
+                </span>
+                <span className="scrubber-legend-item">
+                  <svg width="8" height="8" viewBox="0 0 10 10"><rect x="1" y="1" width="8" height="8" rx="1.5" fill="var(--text-muted)"/></svg>
+                  High xG
+                </span>
+                <span className="scrubber-legend-item">
+                  <svg width="8" height="8" viewBox="0 0 10 10"><polygon points="5,0 10,10 0,10" fill="var(--text-muted)"/></svg>
+                  High xT
                 </span>
               </div>
             </div>

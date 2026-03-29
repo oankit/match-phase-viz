@@ -9,7 +9,10 @@ const PitchCanvas = ({
   voronoi,
   selectedPhase,
   overlayMode = 'shape_graph',
-  metadata
+  metadata,
+  eventXt,
+  shotXg,
+  currentTime = 0,
 }) => {
   const canvasRef = useRef(null)
   const containerRef = useRef(null)
@@ -29,6 +32,36 @@ const PitchCanvas = ({
       setCanvasSize({ width: w, height: h })
     }
   }, [])
+
+  // Filter high-xT passes and high-xG shots that just happened (show for 5s after the event)
+  const XT_THRESHOLD = 0.03
+  const XG_THRESHOLD = 0.08
+  const PERSIST_WINDOW = 5 // seconds after the event
+
+  const nearbyHighXtPasses = useMemo(() => {
+    if (!eventXt?.xt_events) return []
+    const dirMap = eventXt.attacking_direction || {}
+    return eventXt.xt_events.filter(e => {
+      if (e.xt < XT_THRESHOLD) return false
+      if (e.start_x == null || e.end_x == null) return false
+      // Only show after the pass happens, for PERSIST_WINDOW seconds
+      const elapsed = currentTime - e.match_seconds
+      if (elapsed < 0 || elapsed > PERSIST_WINDOW) return false
+      // Only forward passes relative to attacking direction per period
+      const attacksRight = dirMap[`${e.team_id}_${e.period_id}`]
+      const isForward = attacksRight ? e.end_x > e.start_x : e.end_x < e.start_x
+      return isForward
+    })
+  }, [eventXt, currentTime])
+
+  const nearbyHighXgShots = useMemo(() => {
+    if (!shotXg?.shots) return []
+    return shotXg.shots.filter(s => {
+      if (s.xg < XG_THRESHOLD || s.x == null || s.y == null) return false
+      const elapsed = currentTime - s.match_seconds
+      return elapsed >= 0 && elapsed <= PERSIST_WINDOW
+    })
+  }, [shotXg, currentTime])
 
   useEffect(() => {
     measureContainer()
@@ -254,6 +287,130 @@ const PitchCanvas = ({
       })
     }
 
+    // Draw high-xT pass arrows
+    if (nearbyHighXtPasses.length > 0) {
+      nearbyHighXtPasses.forEach(e => {
+        const x1 = xScale(e.start_x), y1 = yScale(e.start_y)
+        const x2 = xScale(e.end_x), y2 = yScale(e.end_y)
+        const color = teamColors[e.team_id] || '#FFD700'
+
+        const elapsed = currentTime - e.match_seconds
+        const opacity = 0.25 + 0.65 * (1 - elapsed / PERSIST_WINDOW)
+
+        ctx.save()
+        ctx.globalAlpha = opacity
+
+        // Arrow line with subtle white halo
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)'
+        ctx.lineWidth = 3.5
+        ctx.lineCap = 'round'
+        ctx.beginPath()
+        ctx.moveTo(x1, y1)
+        ctx.lineTo(x2, y2)
+        ctx.stroke()
+
+        ctx.strokeStyle = color
+        ctx.lineWidth = 1.8
+        ctx.setLineDash([6, 3])
+        ctx.beginPath()
+        ctx.moveTo(x1, y1)
+        ctx.lineTo(x2, y2)
+        ctx.stroke()
+        ctx.setLineDash([])
+
+        // Arrowhead
+        const angle = Math.atan2(y2 - y1, x2 - x1)
+        const headLen = 8
+        ctx.fillStyle = color
+        ctx.beginPath()
+        ctx.moveTo(x2, y2)
+        ctx.lineTo(x2 - headLen * Math.cos(angle - Math.PI / 6), y2 - headLen * Math.sin(angle - Math.PI / 6))
+        ctx.lineTo(x2 - headLen * Math.cos(angle + Math.PI / 6), y2 - headLen * Math.sin(angle + Math.PI / 6))
+        ctx.closePath()
+        ctx.fill()
+
+        // xT pill label
+        const midX = (x1 + x2) / 2, midY = (y1 + y2) / 2
+        const label = `xT ${e.xt.toFixed(2)}`
+        ctx.font = "600 8px 'Plus Jakarta Sans', sans-serif"
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        const metrics = ctx.measureText(label)
+        const padX = 5, padY = 3
+        const pillW = metrics.width + padX * 2
+        const pillH = 14
+
+        ctx.fillStyle = 'rgba(0,0,0,0.6)'
+        ctx.beginPath()
+        const r = pillH / 2
+        ctx.roundRect(midX - pillW / 2, midY - 18 - pillH / 2, pillW, pillH, r)
+        ctx.fill()
+
+        ctx.fillStyle = '#fff'
+        ctx.fillText(label, midX, midY - 18)
+
+        ctx.restore()
+      })
+    }
+
+    // Draw high-xG shot markers
+    if (nearbyHighXgShots.length > 0) {
+      nearbyHighXgShots.forEach(s => {
+        const sx = xScale(s.x), sy = yScale(s.y)
+        const color = teamColors[s.team_id] || '#FFD700'
+
+        const elapsed = currentTime - s.match_seconds
+        const opacity = 0.35 + 0.55 * (1 - elapsed / PERSIST_WINDOW)
+
+        ctx.save()
+        ctx.globalAlpha = opacity
+
+        const ringR = 14 + (s.xg * 16)
+
+        // Subtle filled circle
+        ctx.beginPath()
+        ctx.arc(sx, sy, ringR, 0, 2 * Math.PI)
+        ctx.fillStyle = s.is_goal ? color + '30' : 'rgba(255,255,255,0.08)'
+        ctx.fill()
+
+        // Clean single ring
+        ctx.beginPath()
+        ctx.arc(sx, sy, ringR, 0, 2 * Math.PI)
+        ctx.strokeStyle = s.is_goal ? color : 'rgba(255,255,255,0.7)'
+        ctx.lineWidth = s.is_goal ? 2.5 : 1.5
+        ctx.stroke()
+
+        // Inner dot for goals
+        if (s.is_goal) {
+          ctx.beginPath()
+          ctx.arc(sx, sy, 3, 0, 2 * Math.PI)
+          ctx.fillStyle = color
+          ctx.fill()
+        }
+
+        // xG pill label
+        const label = s.is_goal ? `GOAL  ${s.xg.toFixed(2)}` : `xG ${s.xg.toFixed(2)}`
+        ctx.font = `${s.is_goal ? '700' : '600'} 8px 'Plus Jakarta Sans', sans-serif`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        const metrics = ctx.measureText(label)
+        const pillW = metrics.width + 10
+        const pillH = 14
+        const pillY = sy - ringR - 10
+        const r = pillH / 2
+
+        ctx.fillStyle = s.is_goal ? color : 'rgba(0,0,0,0.6)'
+        ctx.beginPath()
+        ctx.roundRect(sx - pillW / 2, pillY - pillH / 2, pillW, pillH, r)
+        ctx.fill()
+
+        ctx.fillStyle = '#fff'
+        ctx.fillText(label, sx, pillY)
+
+        ctx.restore()
+      })
+    }
+
     // Draw players
     if (frame.players) {
       frame.players.forEach(player => {
@@ -293,7 +450,7 @@ ctx.strokeStyle = 'rgba(255,255,255,0.7)'
       ctx.stroke()
     }
 
-  }, [frame, voronoi, selectedPhase, overlayMode, metadata, canvasSize])
+  }, [frame, voronoi, selectedPhase, overlayMode, metadata, canvasSize, nearbyHighXtPasses, nearbyHighXgShots, currentTime])
 
   const drawPitchMarkings = (ctx, width, height) => {
     ctx.strokeStyle = 'rgba(255,255,255,0.3)'

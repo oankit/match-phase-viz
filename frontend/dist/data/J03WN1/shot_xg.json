@@ -11,7 +11,9 @@
       "player_name": "S. Azmoun",
       "xg": 0.089,
       "is_goal": false,
-      "result": "BLOCKED"
+      "result": "BLOCKED",
+      "x": 0.8626,
+      "y": 0.4056
     },
     {
       "minute": 0.96,
@@ -21,7 +23,9 @@
       "player_name": "M. Diaby",
       "xg": 0.135,
       "is_goal": false,
-      "result": "BLOCKED"
+      "result": "BLOCKED",
+      "x": 0.9046,
+      "y": 0.6401
     },
     {
       "minute": 1.83,
@@ -31,7 +35,9 @@
       "player_name": "S. Azmoun",
       "xg": 0.193,
       "is_goal": false,
-      "result": "BLOCKED"
+      "result": "BLOCKED",
+      "x": 0.8979,
+      "y": 0.4188
     },
     {
       "minute": 2.06,
@@ -41,7 +47,9 @@
       "player_name": "Exequiel Palacios",
       "xg": 0.024,
       "is_goal": false,
-      "result": "OFF_TARGET"
+      "result": "OFF_TARGET",
+      "x": 0.8445,
+      "y": 0.7124
     },
     {
       "minute": 18.06,
@@ -51,7 +59,9 @@
       "player_name": "P. F\u00f6rster",
       "xg": 0.491,
       "is_goal": true,
-      "result": "GOAL"
+      "result": "GOAL",
+      "x": 0.0599,
+      "y": 0.5346
     },
     {
       "minute": 19.55,
@@ -61,7 +71,9 @@
       "player_name": "A. Losilla",
       "xg": 0.014,
       "is_goal": false,
-      "result": "OFF_TARGET"
+      "result": "OFF_TARGET",
+      "x": 0.1918,
+      "y": 0.6932
     },
     {
       "minute": 22.69,
@@ -71,7 +83,9 @@
       "player_name": "M. Diaby",
       "xg": 0.148,
       "is_goal": false,
-      "result": "OFF_TARGET"
+      "result": "OFF_TARGET",
+      "x": 0.873,
+      "y": 0.4868
     },
     {
       "minute": 26.8,
@@ -81,7 +95,9 @@
       "player_name": "S. Azmoun",
       "xg": 0.034,
       "is_goal": false,
-      "result": "SAVED"
+      "result": "SAVED",
+      "x": 0.8158,
+      "y": 0.5871
     },
     {
       "minute": 30.44,
@@ -91,7 +107,9 @@
       "player_name": "P. Hofmann",
       "xg": 0.365,
       "is_goal": false,
-      "result": "OFF_TARGET"
+      "result": "OFF_TARGET",
+      "x": 0.062,
+      "y": 0.5826
     },
     {
       "minute": 31.26,
@@ -101,7 +119,9 @@
       "player_name": "T. Asano",
       "xg": 0.169,
       "is_goal": false,
-      "result": "OFF_TARGET"
+      "result": "OFF_TARGET",
+      "x": 0.0668,
+      "y": 0.6563
     },
     {
       "minute": 33.63,
@@ -111,7 +131,9 @@
       "player_name": "T. Asano",
       "xg": 0.21,
       "is_goal": true,
-      "result": "GOAL"
+      "result": "GOAL",
+      "x": 0.0859,
+      "y": 0.3924
     },
     {
       "minute": 35.63,
@@ -121,7 +143,9 @@
       "player_name": "Florian Wirtz",
       "xg": 0.012,
       "is_goal": false,
-      "result": "SAVED"
+      "result": "SAVED",
+      "x": 0.8215,
+      "y": 0.2625
     },
     {
       "minute": 42.42,
@@ -131,7 +155,9 @@
       "player_name": "C. Antwi-Adjei",
       "xg": 0.011,
       "is_goal": false,
-      "result": "OFF_TARGET"
+      "result": "OFF_TARGET",
+      "x": 0.1994,
+      "y": 0.7065
     },
     {
       "minute": 44.94,
@@ -141,7 +167,9 @@
       "player_name": "P. Hofmann",
       "xg": 0.016,
       "is_goal": false,
-      "result": "SAVED"
+      "result": "SAVED",
+      "x": 0.2156,
+      "y": 0.5988
     },
     {
       "minute": 52.39,
@@ -151,7 +179,9 @@
       "player_name": "M. Diaby",
       "xg": 0.185,
       "is_goal": false,
-      "result": "OFF_TARGET"
+      "result": "OFF_TARGET",
+      "x": 0.0086,
+      "y": 0.32
     },
     {
       "minute": 61.65,
@@ -161,7 +191,9 @@
       "player_name": "N. Amiri",
       "xg": 0.041,
       "is_goal": false,
-      "result": "BLOCKED"
+      "result": "BLOCKED",
+      "x": 0.1727,
+      "y": 0.4026
     },
     {
       "minute": 62.92,
@@ -171,7 +203,9 @@
       "player_name": "Jeremie Frimpong",
       "xg": 0.295,
       "is_goal": false,
-      "result": "POST"
+      "result": "POST",
+      "x": 0.0525,
+      "y": 0.3806
     },
     {
       "minute": 66.65,
@@ -181,7 +215,9 @@
       "player_name": "N. Amiri",
       "xg": 0.153,
       "is_goal": false,
-      "result": "BLOCKED"
+      "result": "BLOCKED",
+      "x": 0.085,
+      "y": 0.6431
     },
     {
       "minute": 80.27,
@@ -191,7 +227,9 @@
       "player_name": "P. Hofmann",
       "xg": 0.246,
       "is_goal": false,
-      "result": "BLOCKED"
+      "result": "BLOCKED",
+      "x": 0.8998,
+      "y": 0.5354
     },
     {
       "minute": 86.52,
@@ -201,7 +239,9 @@
       "player_name": "K. St\u00f6ger",
       "xg": 0.055,
       "is_goal": true,
-      "result": "GOAL"
+      "result": "GOAL",
+      "x": 0.8588,
+      "y": 0.3496
     },
     {
       "minute": 90.6,
@@ -211,7 +251,9 @@
       "player_name": "M. Broschinski",
       "xg": 0.072,
       "is_goal": false,
-      "result": "SAVED"
+      "result": "SAVED",
+      "x": 0.8874,
+      "y": 0.6756
     }
   ]
 }

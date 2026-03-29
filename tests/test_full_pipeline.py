@@ -76,7 +76,7 @@ print(f"     Match time range: 0s - {ts_max:.1f}s ({ts_max/60:.1f} min)\n")
 print("="*80)
 print("[STEP 2] Computing features")
 print("="*80)
-features_df = step2.main(tracking_dataset, tracking_df)
+features_df = step2.main(tracking_dataset, tracking_df, events_df=events_df)
 print(f"[OK] Computed {features_df.shape[0]} feature rows\n")
 
 # ============================================================================

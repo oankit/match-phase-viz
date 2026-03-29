@@ -1,10 +1,27 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import * as d3 from 'd3'
+import { IoFootball } from 'react-icons/io5'
 import './Timeline.css'
+
+let _ballIconCache = null
+function getBallIcon() {
+  if (!_ballIconCache) {
+    const markup = renderToStaticMarkup(createElement(IoFootball))
+    const vbMatch = markup.match(/viewBox="([^"]*)"/)
+    const innerMatch = markup.match(/<svg[^>]*>([\s\S]*)<\/svg>/)
+    _ballIconCache = {
+      viewBox: vbMatch ? vbMatch[1] : '0 0 512 512',
+      inner: innerMatch ? innerMatch[1] : ''
+    }
+  }
+  return _ballIconCache
+}
 
 const Timeline = ({
   teamName = '',
   phases = [],
+  goals = [],
   currentTime = 0,
   duration = 90 * 60,
   onTimeChange,
@@ -31,13 +48,16 @@ const Timeline = ({
     const svg = d3.select(svgRef.current)
     svg.selectAll('*').remove()
 
-    const margin = { top: 8, right: 16, bottom: 24, left: 16 }
+    const hasGoals = goals && goals.length > 0
+    const goalMarkerSpace = hasGoals ? 18 : 0
+    const margin = { top: 8 + goalMarkerSpace, right: 16, bottom: 24, left: 16 }
     const width = svgRef.current.clientWidth - margin.left - margin.right
-    const height = 70 - margin.top - margin.bottom
+    const height = 70 - 8 - margin.bottom
 
+    const totalHeight = height + margin.top + margin.bottom
     const g = svg
       .attr('width', width + margin.left + margin.right)
-      .attr('height', height + margin.top + margin.bottom)
+      .attr('height', totalHeight)
       .append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`)
 
@@ -99,6 +119,30 @@ const Timeline = ({
         d3.select(this).attr('opacity', selectedPhase && selectedPhase.id !== d.id ? 0.3 : 0.8)
         g.select('.phase-tooltip').remove()
       })
+
+    // Goal markers
+    if (hasGoals) {
+      const R = 7
+      goals.forEach(goal => {
+        const goalTime = goal.match_seconds != null ? goal.match_seconds : goal.minute * 60
+        const cx = xScale(goalTime)
+        if (cx == null || isNaN(cx)) return
+        const cy = -goalMarkerSpace / 2
+
+        const { viewBox, inner } = getBallIcon()
+        const size = R * 2
+        const ballSvg = g.append('svg')
+          .attr('x', cx - R).attr('y', cy - R)
+          .attr('width', size).attr('height', size)
+          .attr('viewBox', viewBox).attr('fill', '#333')
+        ballSvg.html(inner)
+
+        g.append('line')
+          .attr('x1', cx).attr('y1', -2)
+          .attr('x2', cx).attr('y2', cy + R + 2)
+          .attr('stroke', '#bbb').attr('stroke-width', 1).attr('stroke-dasharray', '2,2')
+      })
+    }
 
     // Draw current time indicator
     const timeIndicator = g.append('line')
@@ -162,7 +206,7 @@ const Timeline = ({
         if (onTimeChange) onTimeChange(newTime)
       })
 
-  }, [phases, currentTime, duration, selectedPhase, onTimeChange, onPhaseSelect])
+  }, [phases, goals, currentTime, duration, selectedPhase, onTimeChange, onPhaseSelect])
 
   return (
     <div className="timeline-container">
