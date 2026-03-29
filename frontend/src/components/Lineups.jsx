@@ -51,6 +51,16 @@ function StatIcon({ type, title }) {
         <line x1="3" y1="10" x2="17" y2="10" stroke="currentColor" strokeWidth="1" />
       </svg>
     ),
+    yellow_card: (
+      <svg viewBox="0 0 20 20" width="16" height="16" title={title}>
+        <rect x="5" y="2" width="10" height="16" rx="1.5" fill="#f5c542" stroke="#c9a635" strokeWidth="0.8" />
+      </svg>
+    ),
+    red_card: (
+      <svg viewBox="0 0 20 20" width="16" height="16" title={title}>
+        <rect x="5" y="2" width="10" height="16" rx="1.5" fill="#dc2626" stroke="#a31d1d" strokeWidth="0.8" />
+      </svg>
+    ),
   }
   return <span className="stat-icon" title={title}>{icons[type]}</span>
 }
@@ -118,6 +128,14 @@ function TeamLineup({ players, teamName, teamColor, isHome }) {
                 statIcons.push(<StatIcon key={`a${i}`} type="assist" title="Assist" />)
               }
             }
+            if (player.yellow_cards > 0) {
+              for (let i = 0; i < player.yellow_cards; i++) {
+                statIcons.push(<StatIcon key={`yc${i}`} type="yellow_card" title="Yellow card" />)
+              }
+            }
+            if (player.red_card) {
+              statIcons.push(<StatIcon key="rc" type="red_card" title="Red card" />)
+            }
             if (leaders.progressive_passes?.includes(player.id)) {
               statIcons.push(<StatIcon key="pp" type="progressive_passes" title={`Progressive passes: ${player.progressive_passes}`} />)
             }
@@ -178,6 +196,15 @@ export default function Lineups({ playerStats, teams }) {
 
   if (!teamGroups) return null
 
+  const legendItems = [
+    { type: 'goal', label: 'Goal' },
+    { type: 'assist', label: 'Assist' },
+    { type: 'progressive_passes', label: 'Most prog. passes' },
+    { type: 'defensive_actions', label: 'Most def. actions' },
+    { type: 'touches', label: 'Most touches' },
+    { type: 'xg', label: 'xG > 0.05' },
+  ]
+
   return (
     <div>
       <div className="lineups-grid">
@@ -193,6 +220,14 @@ export default function Lineups({ playerStats, teams }) {
           teamColor="#2563EB"
           isHome={false}
         />
+      </div>
+      <div className="lineups-legend">
+        {legendItems.map(item => (
+          <div key={item.type} className="lineups-legend-item">
+            <StatIcon type={item.type} title={item.label} />
+            <span className="lineups-legend-label">{item.label}</span>
+          </div>
+        ))}
       </div>
     </div>
   )

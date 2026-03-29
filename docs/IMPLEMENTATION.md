@@ -1052,4 +1052,198 @@ Replaced the green gradient banner with a clean flat layout matching a reference
 - `MetricCard.css`: Removed colored left border, neutral `--bg-input` background
 - `PhaseFilter.css`: Neutral active state (dark pill), added `.phase-dot`
 
+---
+
+## Flat Layout Redesign (The Athletic Style)
+
+### Goal
+Adopt The Athletic's match dashboard aesthetic: flat layout where all content blends directly with the page background (no card containers), smaller/more compact typography, thin divider lines between sections.
+
+### Changes
+
+**Background**: `#f0edea` (lighter warm off-white matching The Athletic). `--bg-card` set to same as `--bg-page` so cards are invisible.
+
+**Cards removed**: `.dash-card` now has `background: transparent; padding: 0;`. Sections separated by thin `border-bottom: 1px solid var(--border-subtle)` dividers on `.card-header`.
+
+**Section headers**: Changed from large card titles to compact uppercase labels (`font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em`) with bottom border dividers.
+
+**Border radii**: Reduced across the board (`--radius-sm: 4px`, `--radius-lg: 8px`) since rounded cards no longer exist.
+
+**Font sizes reduced** across all components to match The Athletic's compact density:
+- Card titles: 20px -> 14px uppercase
+- Stat labels: 14px -> 13px
+- Lineup text: 14px -> 12px
+- Phase filter buttons: 12px -> 11px
+- Metric values: 26px -> 22px
+- Legend items: 12px -> 10px
+
+**Collapsible sections**: Transparent background, thin bottom border instead of card-style header.
+
+**Metric cards**: Transparent background with bottom border dividers instead of colored cards.
+
+**Lineup tables**: Transparent team containers, bold team name headers with thick colored bottom border.
+
+**Playback controls**: Transparent background, minimal padding.
+
+### Files Changed
+- `index.css`: Background color, reduced radii, bg-card=transparent
+- `App.css`: Flat .dash-card, thin divider headers, compact collapsible, smaller type
+- `MetricCard.css`: Transparent background, bottom border dividers
+- `MetricPanel.css`: Compact sizing, transparent phase summary
+- `MatchStats.css`: Tighter spacing
+- `Lineups.css`: Transparent cards, bold header borders
+- `Timeline.css`: Smaller legend text, compact spacing
+- `ThreatTimeline.css`: Smaller labels
+- `PhaseFilter.css`: Smaller buttons
+- `PitchCanvas.css`: Minimal border radius
+- `Timeline.jsx`: D3 background fill adjusted to match new page bg
+- `ThreatTimeline.jsx`: Center line color adjusted
+
+---
+
+## Jersey Numbers on Pitch View
+
+### Problem
+Player dots on the pitch canvas were anonymous colored circles with no way to identify individual players.
+
+### Solution
+Added jersey numbers inside player circles on the pitch view.
+
+**Pipeline changes** (`08_export_json.py`):
+- Added `jersey_no` extraction from kloppy's Player objects
+- Jersey numbers now included in both `metadata.json` (per player) and `frames.json` (per player per frame)
+- Player number map built from `player.jersey_no` attribute
+
+**Frontend changes** (`PitchCanvas.jsx`):
+- Increased player circle radius from 8px to 13px to accommodate numbers
+- Renders jersey number text (white, bold 11px Plus Jakarta Sans) centered inside each circle
+- Uses `player.number` field from frame data
+
+### Files Changed
+- `pipeline/08_export_json.py`: Added `player_number_map`, `jersey_no` to metadata and frames export
+- `frontend/src/components/PitchCanvas.jsx`: Larger circles (r=13), jersey number rendering
+- `frontend/dist/data/J03WN1/frames.json`: Patched with jersey numbers
+- `frontend/dist/data/J03WN1/metadata.json`: Patched with jersey numbers
+
+---
+
+## Red Card Minutes Fix
+
+### Problem
+Players sent off with a red card showed full match minutes (e.g. Adli showed 93' despite a red card at minute 7). The `_compute_minutes` function only handled substitutions, not dismissals.
+
+### Solution
+Updated `_compute_minutes` in `09_compute_match_stats.py` to detect red cards (`RED`) and second yellows (`SECOND_YELLOW`) from `CARD` events using the `card_type` column, setting `sub_off` to the dismissal minute.
+
+### Files Changed
+- `pipeline/09_compute_match_stats.py`: Added red card / second yellow detection in `_compute_minutes`
+- `frontend/dist/data/J03WN1/metadata.json`: Re-computed player stats with corrected minutes
+
+---
+
+## Yellow & Red Card Icons in Lineups
+
+### Problem
+The lineup display had no indication of which players received yellow or red cards during the match.
+
+### Solution
+- Added `yellow_cards` (count) and `red_card` (boolean) fields to player stats in the pipeline
+- Counts `FIRST_YELLOW` and `SECOND_YELLOW` card types for yellow cards, `RED` and `SECOND_YELLOW` for red cards
+- Added yellow card (gold rectangle) and red card (red rectangle) SVG icons to `StatIcon` in `Lineups.jsx`
+- Card icons appear in the Key Stats column alongside goals, assists, and other stat icons
+
+### Files Changed
+- `pipeline/09_compute_match_stats.py`: Added `yellow_cards` and `red_card` fields, card counting in event loop
+- `frontend/src/components/Lineups.jsx`: Added yellow/red card SVG icons and rendering logic
+- `frontend/dist/data/J03WN1/metadata.json`: Re-computed with card data
+
+---
+
+## Basic Match Stats (Possession, Shots, Corners, Fouls, Saves)
+
+### Problem
+Match Stats only showed advanced analytics (start distance, progression, circulation, etc.) but lacked standard football stats.
+
+### Solution
+Added 6 basic match stats computed from event data, displayed with comparative horizontal bars above the advanced stats section.
+
+**New stats**:
+- Possession (pass share approximation)
+- Shots (total)
+- Shots on target (result = GOAL or SAVED)
+- Corners (set_piece_type = CORNER_KICK)
+- Fouls (FOUL_COMMITTED events)
+- Saves (opponent shots with result = SAVED)
+
+**UI**: Each basic stat shows team values on either side with a split horizontal bar indicating the ratio. The leading team's value is bold and colored. The existing advanced stats (with circle ratings) appear below under an "Advanced" label.
+
+### Files Changed
+- `pipeline/09_compute_match_stats.py`: Added `_compute_basic_stats()` and integrated into `compute_match_stats()`
+- `frontend/src/components/MatchStats.jsx`: Added `BasicStatRow` component, split stats into basic (bar) and advanced (circle rating) sections
+- `frontend/src/components/MatchStats.css`: Added `.basic-stats-section`, `.basic-stat-row`, `.basic-bar-track`, `.stats-section-title` styles
+
+---
+
+## Phase Color Palette Overhaul
+
+### Problem
+The original phase colors were hard to distinguish -- two shades of green (attacking vs build-up) and several muted browns/greys (mid block, defensive block, open play) blended together on the timeline.
+
+### Solution
+Replaced the entire 7-color palette with maximally separated hues:
+
+| Phase | Old Color | New Color | Hue |
+|---|---|---|---|
+| Attacking | #5ea832 | #2d9a4e | Green |
+| Build-up | #8bc575 | #4a90d9 | Blue |
+| High Press | #c47a5a | #d94f4f | Red |
+| Mid Block | #9a8676 | #e8a838 | Amber |
+| Defensive Block | #7c92a6 | #7b5ea7 | Purple |
+| Counter Attack | #bfa64e | #e06b9a | Pink |
+| Open Play | #b5b0a8 | #a8a29e | Grey |
+
+### Files Changed
+- `frontend/src/index.css`: Updated CSS custom properties
+- `frontend/src/components/Timeline.jsx`: Updated `phaseColors` map
+- `frontend/src/components/PhaseFilter.jsx`: Updated filter button colors
+- `frontend/src/components/MetricPanel.jsx`: Updated `PHASE_TYPES` colors
+- `frontend/src/components/MetricCard.css`: Updated trend indicator colors
+
+---
+
+## HiDPI Canvas Rendering
+
+### Problem
+The pitch canvas appeared blurry on high-DPI displays because it rendered at 1x pixel resolution.
+
+### Solution
+Scale the canvas internal bitmap by `window.devicePixelRatio` while keeping the logical drawing coordinate space at 940x612. Applied `ctx.setTransform(dpr, 0, 0, dpr, 0, 0)` so all drawing operations automatically render at the higher resolution.
+
+### Files Changed
+- `frontend/src/components/PitchCanvas.jsx`: Added DPR-aware canvas sizing and transform
+
+---
+
+## Lineups Glyph Legend
+
+### Problem
+The stat icons in the lineups had no explanation -- users couldn't tell what each glyph meant without hovering for tooltips.
+
+### Solution
+Added a horizontal legend below the lineups grid showing each glyph type (goal, assist, most progressive passes, most defensive actions, most touches, xG > 0.05) with its label. Yellow and red cards are excluded since they are self-explanatory.
+
+### Files Changed
+- `frontend/src/components/Lineups.jsx`: Added `legendItems` array and rendered legend row using `StatIcon`
+- `frontend/src/components/Lineups.css`: Added `.lineups-legend`, `.lineups-legend-item`, `.lineups-legend-label` styles
+
+---
+
+## Collapsible Threat Timeline
+
+### Solution
+Wrapped the Threat Timeline section in the existing `Collapsible` component (same as Phase Detection and Match Metrics), replacing the static `card-header`. Defaults to open.
+
+### Files Changed
+- `frontend/src/App.jsx`: Replaced static `dash-card` wrapper with `Collapsible` component
+
 *Last Updated: 2026-03-29*

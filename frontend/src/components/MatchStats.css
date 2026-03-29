@@ -1,3 +1,74 @@
+/* ── Basic Stats (bar comparison) ── */
+.basic-stats-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: 16px;
+}
+
+.basic-stat-row {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.basic-stat-row:last-child {
+  border-bottom: none;
+}
+
+.basic-stat-values {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.basic-val {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  min-width: 36px;
+}
+
+.basic-val.bold {
+  font-weight: 700;
+}
+
+.basic-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.basic-bar-track {
+  display: flex;
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  gap: 2px;
+}
+
+.basic-bar {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+  opacity: 0.75;
+}
+
+.stats-section-title {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin: 16px 0 4px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+/* ── Advanced Stats (circle ratings) ── */
 .match-stats-table {
   display: flex;
   flex-direction: column;
@@ -6,8 +77,8 @@
 .stat-row {
   display: flex;
   align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px solid #f0ece4;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .stat-row:last-child {
@@ -17,7 +88,7 @@
 .stat-side {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex: 1;
 }
 
@@ -30,24 +101,24 @@
 }
 
 .stat-label-col {
-  width: 120px;
+  width: 110px;
   text-align: center;
   flex-shrink: 0;
 }
 
 .stat-label {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
 }
 
 .stat-value {
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--text-muted);
-  min-width: 40px;
+  min-width: 36px;
   text-align: center;
-  padding: 3px 10px;
+  padding: 2px 8px;
   border-radius: var(--radius-pill);
   border: 1.5px solid transparent;
   font-variant-numeric: tabular-nums;
@@ -68,7 +139,7 @@
 
 .circle-rating {
   display: flex;
-  gap: 3px;
+  gap: 2px;
   align-items: center;
 }
 

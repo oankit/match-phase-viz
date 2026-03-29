@@ -1,11 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  --bg-page: #ece8e0;
-  --bg-card: #ffffff;
-  --bg-input: #f5f3ef;
+  --bg-page: #f0edea;
+  --bg-card: #f0edea;
+  --bg-input: #e8e5e0;
 
-  --border-subtle: #e8e4dc;
+  --border-subtle: #ddd9d3;
 
   --text-primary: #1a1a1a;
   --text-secondary: #555;
@@ -14,17 +14,17 @@
   --home-color: #2b6da4;
   --away-color: #c83c35;
 
-  --phase-attacking: #5ea832;
-  --phase-build-up: #8bc575;
-  --phase-high-press: #c47a5a;
-  --phase-mid-block: #9a8676;
-  --phase-def-block: #7c92a6;
-  --phase-counter: #bfa64e;
-  --phase-open: #b5b0a8;
+  --phase-attacking: #2d9a4e;
+  --phase-build-up: #4a90d9;
+  --phase-high-press: #d94f4f;
+  --phase-mid-block: #e8a838;
+  --phase-def-block: #7b5ea7;
+  --phase-counter: #e06b9a;
+  --phase-open: #a8a29e;
 
-  --radius-sm: 12px;
-  --radius-md: 16px;
-  --radius-lg: 20px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
   --radius-pill: 999px;
 
   --font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;

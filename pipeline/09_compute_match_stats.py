@@ -356,8 +356,64 @@ def _stat_rating(value, stat_name):
     return round(raw * 2) / 2
 
 
+def _compute_basic_stats(events_df, team_ids):
+    """Compute possession, shots, shots on target, corners, fouls, saves."""
+    home_id, away_id = team_ids
+    result = {}
+
+    # Possession: approximate from pass share
+    passes = events_df[events_df['event_type'] == 'PASS']
+    home_passes = len(passes[passes['team_id'] == home_id])
+    away_passes = len(passes[passes['team_id'] == away_id])
+    total_passes = home_passes + away_passes
+    if total_passes > 0:
+        result['possession'] = {
+            'home': round(home_passes / total_passes * 100, 1),
+            'away': round(away_passes / total_passes * 100, 1),
+        }
+    else:
+        result['possession'] = {'home': 50.0, 'away': 50.0}
+
+    # Shots
+    shots = events_df[events_df['event_type'] == 'SHOT']
+    result['shots'] = {
+        'home': int(len(shots[shots['team_id'] == home_id])),
+        'away': int(len(shots[shots['team_id'] == away_id])),
+    }
+
+    # Shots on target (GOAL or SAVED = hit the target)
+    on_target = shots[shots['result'].isin(['GOAL', 'SAVED'])]
+    result['shots_on_target'] = {
+        'home': int(len(on_target[on_target['team_id'] == home_id])),
+        'away': int(len(on_target[on_target['team_id'] == away_id])),
+    }
+
+    # Corners
+    corners = events_df[events_df['set_piece_type'] == 'CORNER_KICK']
+    result['corners'] = {
+        'home': int(len(corners[corners['team_id'] == home_id])),
+        'away': int(len(corners[corners['team_id'] == away_id])),
+    }
+
+    # Fouls
+    fouls = events_df[events_df['event_type'] == 'FOUL_COMMITTED']
+    result['fouls'] = {
+        'home': int(len(fouls[fouls['team_id'] == home_id])),
+        'away': int(len(fouls[fouls['team_id'] == away_id])),
+    }
+
+    # Saves (opponent's shots that were saved = your GK saves)
+    saved_shots = shots[shots['result'] == 'SAVED']
+    result['saves'] = {
+        'home': int(len(saved_shots[saved_shots['team_id'] == away_id])),
+        'away': int(len(saved_shots[saved_shots['team_id'] == home_id])),
+    }
+
+    return result
+
+
 def compute_match_stats(events_df, team_ids):
-    """Compute all six match stats for both teams.
+    """Compute match stats for both teams.
 
     Args:
         events_df: Events DataFrame from kloppy
@@ -376,7 +432,58 @@ def compute_match_stats(events_df, team_ids):
     home_poss = _build_possessions(events_df, home_id)
     away_poss = _build_possessions(events_df, away_id)
 
+    # Basic match stats
+    basic = _compute_basic_stats(events_df, team_ids)
+
     stats = {}
+
+    stats['possession'] = {
+        'label': 'Possession',
+        'description': 'Ball possession percentage',
+        'unit': '%',
+        'home': basic['possession']['home'],
+        'away': basic['possession']['away'],
+    }
+
+    stats['shots'] = {
+        'label': 'Shots',
+        'description': 'Total shots',
+        'unit': '',
+        'home': basic['shots']['home'],
+        'away': basic['shots']['away'],
+    }
+
+    stats['shots_on_target'] = {
+        'label': 'Shots on target',
+        'description': 'Shots on target (saved or goal)',
+        'unit': '',
+        'home': basic['shots_on_target']['home'],
+        'away': basic['shots_on_target']['away'],
+    }
+
+    stats['corners'] = {
+        'label': 'Corners',
+        'description': 'Corner kicks',
+        'unit': '',
+        'home': basic['corners']['home'],
+        'away': basic['corners']['away'],
+    }
+
+    stats['fouls'] = {
+        'label': 'Fouls',
+        'description': 'Fouls committed',
+        'unit': '',
+        'home': basic['fouls']['home'],
+        'away': basic['fouls']['away'],
+    }
+
+    stats['saves'] = {
+        'label': 'Saves',
+        'description': 'Goalkeeper saves',
+        'unit': '',
+        'home': basic['saves']['home'],
+        'away': basic['saves']['away'],
+    }
 
     stats['start_distance'] = {
         'label': 'Start distance',
@@ -511,6 +618,8 @@ def compute_player_stats(events_df, tracking_dataset):
                 'is_starter': is_starter,
                 'sub_on': None,
                 'sub_off': None,
+                'yellow_cards': 0,
+                'red_card': False,
             }
 
     _compute_minutes(events_df, players)
@@ -547,16 +656,22 @@ def compute_player_stats(events_df, tracking_dataset):
                 ar = _get_attack_right(direction_map, team_id, period)
                 players[pid]['xg'] += _positional_xg(x, row['coordinates_y'], ar)
 
+        if et == 'CARD':
+            card_type = row.get('card_type', '')
+            if card_type in ('RED', 'SECOND_YELLOW'):
+                players[pid]['red_card'] = True
+            if card_type in ('FIRST_YELLOW', 'SECOND_YELLOW'):
+                players[pid]['yellow_cards'] += 1
+
     _compute_assists(events_df, players)
 
     return players
 
 
 def _compute_minutes(events_df, players):
-    """Compute minutes played from substitution events and match duration.
+    """Compute minutes played from substitution and card events.
 
-    Uses the is_starter flag already set from kloppy metadata (p.starting).
-    Only detects sub_on/sub_off times from SUBSTITUTION events.
+    Handles: substitutions (on/off), red cards, and second yellows.
     """
     subs = events_df[events_df['event_type'] == 'SUBSTITUTION'].sort_values('timestamp')
 
@@ -572,6 +687,23 @@ def _compute_minutes(events_df, players):
             players[pid]['sub_off'] = minute
         else:
             players[pid]['sub_on'] = minute
+
+    # Handle red cards and second yellows as dismissals
+    dismissal_types = {'RED', 'SECOND_YELLOW'}
+    cards = events_df[
+        (events_df['event_type'] == 'CARD') &
+        (events_df['card_type'].isin(dismissal_types))
+    ].sort_values('timestamp')
+
+    for _, card in cards.iterrows():
+        pid = card['player_id']
+        if pid not in players:
+            continue
+        ts = card['timestamp'].total_seconds()
+        period = card['period_id']
+        minute = int((ts + (45 * 60 if period == 2 else 0)) / 60)
+        players[pid]['sub_off'] = minute
+        players[pid]['sent_off'] = True
 
     # For non-starters not found in SUBSTITUTION events, try first event time
     for pid, p in players.items():

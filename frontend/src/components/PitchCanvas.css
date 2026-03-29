@@ -7,7 +7,7 @@
 .pitch-canvas {
   width: 100%;
   height: auto;
-  border-radius: var(--radius-sm);
+  border-radius: 2px;
 }
 
 .formation-svg {

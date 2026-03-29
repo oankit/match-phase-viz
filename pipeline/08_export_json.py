@@ -43,7 +43,7 @@ def downsample_tracking(tracking_df, target_fps=4):
     return downsampled
 
 
-def export_frames(tracking_df, player_team_map, output_dir):
+def export_frames(tracking_df, player_team_map, output_dir, player_number_map=None):
     """
     Export tracking frames to JSON.
 
@@ -51,10 +51,13 @@ def export_frames(tracking_df, player_team_map, output_dir):
         tracking_df: Tracking DataFrame
         player_team_map: dict mapping player_id to team_id
         output_dir: Output directory path
+        player_number_map: dict mapping player_id to jersey number
 
     Returns:
         str: Path to exported frames.json
     """
+    if player_number_map is None:
+        player_number_map = {}
     print("\nExporting frames...")
 
     frames = []
@@ -90,6 +93,8 @@ def export_frames(tracking_df, player_team_map, output_dir):
                         'x': float(x),
                         'y': float(y),
                     }
+                    if player_id in player_number_map:
+                        player_data['number'] = player_number_map[player_id]
 
                     # Add optional fields if available
                     if d_col in row.index and not pd.isna(row[d_col]):
@@ -367,6 +372,7 @@ def export_metadata(tracking_dataset, match_id, output_dir, events_df=None, matc
                     {
                         'id': player.player_id,
                         'name': player.name if player.name else player.player_id,
+                        'number': getattr(player, 'jersey_no', None),
                         'position': str(getattr(player, 'starting_position', None) or getattr(player, 'position', None) or ''),
                     }
                     for player in team.players
@@ -432,11 +438,15 @@ def main(match_id, tracking_dataset, tracking_df, phases_df, formations, voronoi
     output_dir.mkdir(parents=True, exist_ok=True)
     print(f"Output directory: {output_dir}")
 
-    # Get player-team mapping
+    # Get player-team and player-number mappings
     player_team_map = {}
+    player_number_map = {}
     for team in tracking_dataset.metadata.teams:
         for player in team.players:
             player_team_map[player.player_id] = team.team_id
+            jersey = getattr(player, 'jersey_no', None)
+            if jersey is not None:
+                player_number_map[player.player_id] = int(jersey)
 
     # Downsample tracking data and voronoi
     # Use config values for proper downsampling
@@ -459,7 +469,7 @@ def main(match_id, tracking_dataset, tracking_df, phases_df, formations, voronoi
     exported_files = {
         'metadata': export_metadata(tracking_dataset, match_id, output_dir, events_df=events_df,
                                          match_duration=match_duration, period_2_offset_secs=period_2_offset_secs),
-        'frames': export_frames(tracking_df_downsampled, player_team_map, output_dir),
+        'frames': export_frames(tracking_df_downsampled, player_team_map, output_dir, player_number_map),
         'phases': export_phases(phases_df, output_dir),
         'formations': export_formations(formations, output_dir),
         'voronoi': export_voronoi(voronoi_downsampled, output_dir),

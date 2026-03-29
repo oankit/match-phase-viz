@@ -1,24 +1,23 @@
 .metric-card {
-  background: var(--bg-input);
-  border-radius: var(--radius-sm);
-  padding: 14px 16px;
-  transition: background 0.15s;
+  background: transparent;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
-.metric-card:hover {
-  background: #f0ece4;
+.metric-card:last-child {
+  border-bottom: none;
 }
 
 .metric-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .metric-header h5 {
   margin: 0;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -26,35 +25,35 @@
 }
 
 .trend-indicator {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
 }
 
-.trend-indicator.positive { color: #5ea832; }
-.trend-indicator.negative { color: #c47a5a; }
+.trend-indicator.positive { color: #2d9a4e; }
+.trend-indicator.negative { color: #d94f4f; }
 
 .metric-value {
   display: flex;
   align-items: baseline;
-  gap: 4px;
-  margin-bottom: 3px;
+  gap: 3px;
+  margin-bottom: 2px;
 }
 
 .metric-value .value {
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 700;
   line-height: 1.1;
   color: var(--text-primary);
 }
 
 .metric-value .unit {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-muted);
   font-weight: 500;
 }
 
 .metric-description {
   margin: 0;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-muted);
 }

@@ -3,13 +3,13 @@ import './PhaseFilter.css'
 const PhaseFilter = ({ phaseFilter, setPhaseFilter }) => {
   const phaseTypes = [
     { value: 'all', label: 'All Phases', color: null },
-    { value: 'attacking', label: 'Attacking', color: '#5ea832' },
-    { value: 'build_up', label: 'Build-up', color: '#8bc575' },
-    { value: 'high_press', label: 'High Press', color: '#c47a5a' },
-    { value: 'mid_block', label: 'Mid Block', color: '#9a8676' },
-    { value: 'defensive_block', label: 'Def. Block', color: '#7c92a6' },
-    { value: 'counter_attack', label: 'Counter', color: '#bfa64e' },
-    { value: 'open_play', label: 'Open Play', color: '#b5b0a8' },
+    { value: 'attacking', label: 'Attacking', color: '#2d9a4e' },
+    { value: 'build_up', label: 'Build-up', color: '#4a90d9' },
+    { value: 'high_press', label: 'High Press', color: '#d94f4f' },
+    { value: 'mid_block', label: 'Mid Block', color: '#e8a838' },
+    { value: 'defensive_block', label: 'Def. Block', color: '#7b5ea7' },
+    { value: 'counter_attack', label: 'Counter', color: '#e06b9a' },
+    { value: 'open_play', label: 'Open Play', color: '#a8a29e' },
   ]
 
   const togglePhase = (phase) => {

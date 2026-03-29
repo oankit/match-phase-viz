@@ -1,6 +1,6 @@
 .phase-filter-container h3 {
-  margin: 0 0 8px 0;
-  font-size: 11px;
+  margin: 0 0 6px 0;
+  font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -9,29 +9,29 @@
 
 .phase-filter-buttons {
   display: flex;
-  gap: 6px;
+  gap: 5px;
   flex-wrap: wrap;
 }
 
 .phase-filter-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border: 1.5px solid var(--border-subtle);
+  gap: 5px;
+  padding: 4px 10px;
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-pill);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   font-family: var(--font);
   cursor: pointer;
   transition: all 0.15s;
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--text-muted);
 }
 
 .phase-filter-btn:hover {
-  border-color: var(--text-muted);
-  background: var(--bg-input);
+  border-color: var(--text-secondary);
+  color: var(--text-secondary);
 }
 
 .phase-filter-btn.active {
@@ -42,8 +42,8 @@
 }
 
 .phase-dot {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   flex-shrink: 0;
 }

@@ -23,9 +23,15 @@ const PitchCanvas = ({
 
     if (!canvas || !frame) return
 
+    const dpr = window.devicePixelRatio || 1
+    const width = 940
+    const height = 612
+
+    canvas.width = width * dpr
+    canvas.height = height * dpr
+
     const ctx = canvas.getContext('2d')
-    const width = canvas.width
-    const height = canvas.height
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 
     // Scale coordinates from normalized (0-1) to canvas pixels
     const xScale = d3.scaleLinear().domain([0, 1]).range([0, width])
@@ -177,21 +183,21 @@ const PitchCanvas = ({
         const x = xScale(player.x)
         const y = yScale(player.y)
 
-        // Player circle
+        const r = 13
         ctx.beginPath()
-        ctx.arc(x, y, 8, 0, 2 * Math.PI)
+        ctx.arc(x, y, r, 0, 2 * Math.PI)
         ctx.fillStyle = teamColors[player.team] || '#666'
         ctx.fill()
-        ctx.strokeStyle = 'white'
-        ctx.lineWidth = 2
+        ctx.strokeStyle = 'rgba(255,255,255,0.6)'
+        ctx.lineWidth = 1
         ctx.stroke()
 
-        if (player.number) {
-          ctx.fillStyle = 'white'
-          ctx.font = 'bold 10px Inter, Arial'
+        if (player.number != null) {
+          ctx.font = "bold 11px 'Plus Jakarta Sans', sans-serif"
           ctx.textAlign = 'center'
           ctx.textBaseline = 'middle'
-          ctx.fillText(player.number, x, y)
+          ctx.fillStyle = 'white'
+          ctx.fillText(player.number, x, y + 0.5)
         }
       })
     }
@@ -202,11 +208,11 @@ const PitchCanvas = ({
       const ballY = yScale(frame.ball.y)
 
       ctx.beginPath()
-      ctx.arc(ballX, ballY, 5, 0, 2 * Math.PI)
+      ctx.arc(ballX, ballY, 8, 0, 2 * Math.PI)
       ctx.fillStyle = 'white'
       ctx.fill()
-      ctx.strokeStyle = 'black'
-      ctx.lineWidth = 1
+      ctx.strokeStyle = '#333'
+      ctx.lineWidth = 1.5
       ctx.stroke()
     }
 
@@ -264,8 +270,6 @@ const PitchCanvas = ({
     <div className="pitch-container">
       <canvas
         ref={canvasRef}
-        width={940}
-        height={612}
         className="pitch-canvas"
       />
     </div>

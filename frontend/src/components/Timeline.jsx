@@ -15,13 +15,13 @@ const Timeline = ({
 
   // Phase color mapping
   const phaseColors = {
-    'attacking': '#5ea832',
-    'build_up': '#8bc575',
-    'high_press': '#c47a5a',
-    'mid_block': '#9a8676',
-    'defensive_block': '#7c92a6',
-    'counter_attack': '#bfa64e',
-    'open_play': '#b5b0a8',
+    'attacking': '#2d9a4e',
+    'build_up': '#4a90d9',
+    'high_press': '#d94f4f',
+    'mid_block': '#e8a838',
+    'defensive_block': '#7b5ea7',
+    'counter_attack': '#e06b9a',
+    'open_play': '#a8a29e',
   }
 
   useEffect(() => {
@@ -49,7 +49,7 @@ const Timeline = ({
     g.append('rect')
       .attr('width', width)
       .attr('height', height)
-      .attr('fill', '#f5f3ef')
+      .attr('fill', '#e8e5e0')
 
     // Draw phase rectangles
     const phaseRects = g.selectAll('.phase-rect')
@@ -106,8 +106,9 @@ const Timeline = ({
       .attr('y1', 0)
       .attr('x2', xScale(currentTime))
       .attr('y2', height)
-      .attr('stroke', '#1a1a1a')
+      .attr('stroke', '#ffffff')
       .attr('stroke-width', 2)
+      .attr('filter', 'drop-shadow(0 0 2px rgba(0,0,0,0.6))')
       .attr('cursor', 'ew-resize')
 
     // Time axis

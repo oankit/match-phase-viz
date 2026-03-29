@@ -99,7 +99,7 @@ const ThreatTimeline = ({
       .attr('y1', height / 2)
       .attr('x2', width)
       .attr('y2', height / 2)
-      .attr('stroke', '#e0dcd4')
+      .attr('stroke', '#ddd9d3')
       .attr('stroke-width', 1)
 
     // Home team bars (up)

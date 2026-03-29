@@ -1,41 +1,95 @@
-import { useMemo } from 'react'
+import { useMemo, useRef, useEffect } from 'react'
+import * as d3 from 'd3'
 import MetricCard from './MetricCard'
 import './MetricPanel.css'
 
 const PHASE_TYPES = [
-  { key: 'attacking', label: 'ATK', color: '#5ea832' },
-  { key: 'build_up', label: 'BLD', color: '#8bc575' },
-  { key: 'high_press', label: 'HI P', color: '#c47a5a' },
-  { key: 'mid_block', label: 'MID', color: '#9a8676' },
-  { key: 'defensive_block', label: 'DEF', color: '#7c92a6' },
-  { key: 'counter_attack', label: 'CTR', color: '#bfa64e' },
-  { key: 'open_play', label: 'OPN', color: '#b5b0a8' },
+  { key: 'attacking', label: 'Attacking', color: '#2d9a4e' },
+  { key: 'build_up', label: 'Build-up', color: '#4a90d9' },
+  { key: 'high_press', label: 'High Press', color: '#d94f4f' },
+  { key: 'mid_block', label: 'Mid Block', color: '#e8a838' },
+  { key: 'defensive_block', label: 'Def. Block', color: '#7b5ea7' },
+  { key: 'counter_attack', label: 'Counter', color: '#e06b9a' },
+  { key: 'open_play', label: 'Open Play', color: '#a8a29e' },
 ]
 
 function PhaseDistChart({ phases }) {
-  const counts = useMemo(() => {
-    if (!phases || phases.length === 0) return PHASE_TYPES.map(() => 0)
-    return PHASE_TYPES.map(pt => phases.filter(p => p.type === pt.key).length)
+  const svgRef = useRef(null)
+
+  const data = useMemo(() => {
+    if (!phases || phases.length === 0) return []
+    return PHASE_TYPES.map(pt => ({
+      ...pt,
+      count: phases.filter(p => p.type === pt.key).length,
+    })).filter(d => d.count > 0)
   }, [phases])
 
-  const max = Math.max(...counts, 1)
+  const total = useMemo(() => data.reduce((s, d) => s + d.count, 0), [data])
+
+  useEffect(() => {
+    if (!svgRef.current || data.length === 0) return
+
+    const size = 160
+    const radius = size / 2
+    const innerRadius = radius * 0.55
+
+    const svg = d3.select(svgRef.current)
+    svg.selectAll('*').remove()
+
+    const g = svg
+      .attr('width', size)
+      .attr('height', size)
+      .append('g')
+      .attr('transform', `translate(${radius},${radius})`)
+
+    const pie = d3.pie().value(d => d.count).sort(null).padAngle(0.02)
+    const arc = d3.arc().innerRadius(innerRadius).outerRadius(radius).cornerRadius(3)
+
+    g.selectAll('path')
+      .data(pie(data))
+      .enter()
+      .append('path')
+      .attr('d', arc)
+      .attr('fill', d => d.data.color)
+      .attr('opacity', 0.9)
+
+    g.append('text')
+      .attr('text-anchor', 'middle')
+      .attr('dy', '-0.1em')
+      .attr('font-size', '22px')
+      .attr('font-weight', '700')
+      .attr('fill', 'var(--text-primary)')
+      .attr('font-family', "'Plus Jakarta Sans', sans-serif")
+      .text(total)
+
+    g.append('text')
+      .attr('text-anchor', 'middle')
+      .attr('dy', '1.3em')
+      .attr('font-size', '9px')
+      .attr('font-weight', '600')
+      .attr('fill', 'var(--text-muted)')
+      .attr('font-family', "'Plus Jakarta Sans', sans-serif")
+      .attr('text-transform', 'uppercase')
+      .attr('letter-spacing', '0.06em')
+      .text('PHASES')
+
+  }, [data, total])
+
+  if (data.length === 0) return null
 
   return (
-    <div className="phase-dist-chart">
-      {PHASE_TYPES.map((pt, i) => (
-        <div key={pt.key} className="phase-bar-wrapper">
-          <span className="phase-bar-count">{counts[i]}</span>
-          <div
-            className="phase-bar"
-            style={{
-              backgroundColor: pt.color,
-              height: `${(counts[i] / max) * 80}%`,
-              opacity: counts[i] > 0 ? 0.85 : 0.2,
-            }}
-          />
-          <span className="phase-bar-label">{pt.label}</span>
-        </div>
-      ))}
+    <div className="phase-pie-container">
+      <svg ref={svgRef} />
+      <div className="phase-pie-legend">
+        {data.map(d => (
+          <div key={d.key} className="phase-pie-legend-item">
+            <span className="phase-pie-dot" style={{ backgroundColor: d.color }} />
+            <span className="phase-pie-label">{d.label}</span>
+            <span className="phase-pie-count">{d.count}</span>
+            <span className="phase-pie-pct">{Math.round(d.count / total * 100)}%</span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -103,8 +157,6 @@ const MetricPanel = ({ phases, currentPhase, teamNameMap = {}, fullView = false 
 
   return (
     <div className="metric-panel">
-      <h3>Match Metrics</h3>
-
       {currentPhase && (
         <div className="current-phase-info">
           <h4>Current Phase</h4>

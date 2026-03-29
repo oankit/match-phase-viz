@@ -133,11 +133,7 @@ function App() {
             </button>
           ))}
         </div>
-        <div className="nav-actions">
-          <span style={{ fontSize: 13, color: '#999', fontWeight: 500 }}>
-            {Math.floor(currentTime / 60)}:{String(Math.floor(currentTime % 60)).padStart(2, '0')}
-          </span>
-        </div>
+        <div className="nav-actions" />
       </nav>
 
       {/* ── Score Banner ── */}
@@ -192,19 +188,18 @@ function App() {
         <div className="tab-content">
 
           {/* Threat Timeline */}
-          <div className="dash-card">
-            <div className="card-header">
-              <h2 className="card-title">Threat Timeline</h2>
+          <Collapsible title="Threat Timeline" defaultOpen={true}>
+            <div className="dash-card" style={{ marginTop: 8 }}>
+              <ThreatTimeline
+                phases={matchData.phases}
+                metadata={matchData.metadata}
+                goals={goals}
+                currentTime={currentTime}
+                duration={matchDuration}
+                onTimeChange={handleTimeChange}
+              />
             </div>
-            <ThreatTimeline
-              phases={matchData.phases}
-              metadata={matchData.metadata}
-              goals={goals}
-              currentTime={currentTime}
-              duration={matchDuration}
-              onTimeChange={handleTimeChange}
-            />
-          </div>
+          </Collapsible>
 
           {/* Phase Detection */}
           <Collapsible title="Phase Detection" defaultOpen={true}>
@@ -266,18 +261,35 @@ function App() {
               metadata={matchData.metadata}
             />
             <div className="playback-controls">
-              <button onClick={() => setIsPlaying(!isPlaying)}>
-                {isPlaying ? 'Pause' : 'Play'}
+              <div className="speed-selector">
+                <span className="speed-label">Speed</span>
+                <div className="speed-options">
+                  {[0.5, 1, 2, 4].map(s => (
+                    <button
+                      key={s}
+                      className={`speed-btn ${playbackSpeed === s ? 'active' : ''}`}
+                      onClick={() => setPlaybackSpeed(s)}
+                    >
+                      {s}x
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button className="play-pause-btn" onClick={() => setIsPlaying(!isPlaying)} aria-label={isPlaying ? 'Pause' : 'Play'}>
+                {isPlaying ? (
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                    <rect x="3" y="2" width="4" height="12" rx="1" />
+                    <rect x="9" y="2" width="4" height="12" rx="1" />
+                  </svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M4 2.5v11a.5.5 0 00.77.42l9-5.5a.5.5 0 000-.84l-9-5.5A.5.5 0 004 2.5z" />
+                  </svg>
+                )}
               </button>
-              <label>
-                Speed:
-                <select value={playbackSpeed} onChange={e => setPlaybackSpeed(Number(e.target.value))}>
-                  <option value={0.5}>0.5x</option>
-                  <option value={1}>1x</option>
-                  <option value={2}>2x</option>
-                  <option value={4}>4x</option>
-                </select>
-              </label>
+              <span className="playback-time">
+                {Math.floor(currentTime / 60)}:{String(Math.floor(currentTime % 60)).padStart(2, '0')}
+              </span>
             </div>
           </div>
 
