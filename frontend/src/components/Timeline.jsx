@@ -9,6 +9,7 @@ const Timeline = ({
   duration = 90 * 60,
   onTimeChange,
   selectedPhase,
+  showLegend = true,
   onPhaseSelect
 }) => {
   const svgRef = useRef(null)
@@ -106,9 +107,9 @@ const Timeline = ({
       .attr('y1', 0)
       .attr('x2', xScale(currentTime))
       .attr('y2', height)
-      .attr('stroke', '#ffffff')
-      .attr('stroke-width', 2)
-      .attr('filter', 'drop-shadow(0 0 2px rgba(0,0,0,0.6))')
+      .attr('stroke', '#1a1a1a')
+      .attr('stroke-width', 2.5)
+      .attr('filter', 'drop-shadow(0 0 1px rgba(255,255,255,0.8))')
       .attr('cursor', 'ew-resize')
 
     // Time axis
@@ -167,14 +168,16 @@ const Timeline = ({
     <div className="timeline-container">
       <h3>{teamName ? `${teamName} - Timeline` : 'Match Timeline'}</h3>
       <svg ref={svgRef} className="timeline-svg"></svg>
-      <div className="timeline-legend">
-        {Object.entries(phaseColors).map(([type, color]) => (
-          <div key={type} className="legend-item">
-            <div className="legend-color" style={{ backgroundColor: color }}></div>
-            <span>{type.replace(/_/g, ' ')}</span>
-          </div>
-        ))}
-      </div>
+      {showLegend && (
+        <div className="timeline-legend">
+          {Object.entries(phaseColors).map(([type, color]) => (
+            <div key={type} className="legend-item">
+              <div className="legend-color" style={{ backgroundColor: color }}></div>
+              <span>{type.replace(/_/g, ' ')}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

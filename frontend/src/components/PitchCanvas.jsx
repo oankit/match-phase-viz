@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState, useCallback } from 'react'
 import * as d3 from 'd3'
 import { computeShapeGraph } from '../utils/shapeGraph'
 import './PitchCanvas.css'
@@ -11,12 +11,27 @@ const PitchCanvas = ({
   metadata
 }) => {
   const canvasRef = useRef(null)
+  const containerRef = useRef(null)
+  const [canvasSize, setCanvasSize] = useState({ width: 940, height: 612 })
 
-  // Team colors
   const teamColors = {
     'DFL-CLU-00000S': '#2b6da4',
     'DFL-CLU-00000B': '#c83c35',
   }
+
+  const measureContainer = useCallback(() => {
+    if (containerRef.current) {
+      const w = containerRef.current.clientWidth
+      const h = Math.round(w * (68 / 105))
+      setCanvasSize({ width: w, height: h })
+    }
+  }, [])
+
+  useEffect(() => {
+    measureContainer()
+    window.addEventListener('resize', measureContainer)
+    return () => window.removeEventListener('resize', measureContainer)
+  }, [measureContainer])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -24,11 +39,13 @@ const PitchCanvas = ({
     if (!canvas || !frame) return
 
     const dpr = window.devicePixelRatio || 1
-    const width = 940
-    const height = 612
+    const width = canvasSize.width
+    const height = canvasSize.height
 
     canvas.width = width * dpr
     canvas.height = height * dpr
+    canvas.style.width = width + 'px'
+    canvas.style.height = height + 'px'
 
     const ctx = canvas.getContext('2d')
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
@@ -40,8 +57,7 @@ const PitchCanvas = ({
     // Clear canvas
     ctx.clearRect(0, 0, width, height)
 
-    // Draw pitch background
-    ctx.fillStyle = '#3a8c3a'
+    ctx.fillStyle = '#4a8c5c'
     ctx.fillRect(0, 0, width, height)
 
     // Draw pitch markings
@@ -66,8 +82,9 @@ const PitchCanvas = ({
         // teams array maps index to team_id
         const teams = voronoi.teams || []
 
+        const dotRadius = Math.max(7, width * 0.009)
+
         voronoi.control_grid.forEach(pt => {
-          // Compact format: [x, y, teamIdx, time]
           const [px, py, teamIdx, timeToReach] = Array.isArray(pt)
             ? pt
             : [pt.x, pt.y, null, pt.time || 0]
@@ -77,22 +94,14 @@ const PitchCanvas = ({
 
           const maxTime = 3.0
           const normalizedTime = Math.min((timeToReach || 0) / maxTime, 1)
-          const opacity = 0.7 * (1 - normalizedTime) + 0.1
-
-          const radius = 14
-
-          const gradient = ctx.createRadialGradient(
-            xScale(px), yScale(py), 0,
-            xScale(px), yScale(py), radius
-          )
+          const controlStrength = 1 - normalizedTime
+          const opacity = 0.35 + 0.55 * controlStrength
 
           const alphaHex = Math.floor(opacity * 255).toString(16).padStart(2, '0')
-          gradient.addColorStop(0, `${color}${alphaHex}`)
-          gradient.addColorStop(1, `${color}11`)
 
           ctx.beginPath()
-          ctx.arc(xScale(px), yScale(py), radius, 0, 2 * Math.PI)
-          ctx.fillStyle = gradient
+          ctx.arc(xScale(px), yScale(py), dotRadius, 0, 2 * Math.PI)
+          ctx.fillStyle = `${color}${alphaHex}`
           ctx.fill()
         })
         ctx.restore()
@@ -101,9 +110,9 @@ const PitchCanvas = ({
       if (voronoi.convex_hull && voronoi.convex_hull.length > 0) {
         // Draw the convex hull outline (Rest Defence border)
         ctx.beginPath()
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)'
-        ctx.lineWidth = 2
-        ctx.setLineDash([5, 5])
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)'
+        ctx.lineWidth = 1.2
+        ctx.setLineDash([4, 3])
         const firstPt = voronoi.convex_hull[0]
         ctx.moveTo(xScale(firstPt[0]), yScale(firstPt[1]))
         voronoi.convex_hull.forEach(pt => {
@@ -159,17 +168,92 @@ const PitchCanvas = ({
         const coords = outfield.map(p => [p.x, p.y])
         const edges = computeShapeGraph(coords)
 
-        // Draw edges on canvas
         const color = teamColors[teamId] || '#666'
-        ctx.strokeStyle = color
-        ctx.lineWidth = 2
-        ctx.globalAlpha = 0.35
         ctx.setLineDash([])
+        ctx.globalAlpha = 0.65
 
         edges.forEach(([i, j]) => {
+          const x1 = xScale(coords[i][0]), y1 = yScale(coords[i][1])
+          const x2 = xScale(coords[j][0]), y2 = yScale(coords[j][1])
+
+          ctx.strokeStyle = color
+          ctx.lineWidth = 2
           ctx.beginPath()
-          ctx.moveTo(xScale(coords[i][0]), yScale(coords[i][1]))
-          ctx.lineTo(xScale(coords[j][0]), yScale(coords[j][1]))
+          ctx.moveTo(x1, y1)
+          ctx.lineTo(x2, y2)
+          ctx.stroke()
+        })
+
+        ctx.globalAlpha = 1.0
+      })
+    }
+
+    // Draw formation lines overlay (defensive / midfield / attack lines)
+    if (overlayMode === 'formation_lines' && frame.players) {
+      const gkIds = new Set()
+      if (metadata?.teams) {
+        metadata.teams.forEach(team => {
+          team.players?.forEach(p => {
+            if (p.position && p.position.toLowerCase().startsWith('goalkeeper')) {
+              gkIds.add(p.id)
+            }
+          })
+        })
+      }
+
+      const teamGroups = {}
+      frame.players.forEach(player => {
+        if (!teamGroups[player.team]) teamGroups[player.team] = []
+        teamGroups[player.team].push(player)
+      })
+
+      Object.entries(teamGroups).forEach(([teamId, players]) => {
+        if (players.length < 4) return
+
+        let outfield
+        if (gkIds.size > 0) {
+          outfield = players.filter(p => !gkIds.has(p.id))
+        } else {
+          const meanX = players.reduce((s, p) => s + p.x, 0) / players.length
+          let maxDist = 0, gkIdx = 0
+          players.forEach((p, i) => {
+            const dist = Math.abs(p.x - meanX)
+            if (dist > maxDist) { maxDist = dist; gkIdx = i }
+          })
+          outfield = players.filter((_, i) => i !== gkIdx)
+        }
+
+        if (outfield.length < 4) return
+
+        const sorted = [...outfield].sort((a, b) => a.x - b.x)
+
+        const lines = [[sorted[0]]]
+        const threshold = 0.07
+        for (let i = 1; i < sorted.length; i++) {
+          const lastGroup = lines[lines.length - 1]
+          const groupMeanX = lastGroup.reduce((s, p) => s + p.x, 0) / lastGroup.length
+          if (Math.abs(sorted[i].x - groupMeanX) < threshold) {
+            lastGroup.push(sorted[i])
+          } else {
+            lines.push([sorted[i]])
+          }
+        }
+
+        const color = teamColors[teamId] || '#666'
+        ctx.setLineDash([])
+        ctx.globalAlpha = 0.7
+
+        lines.forEach(line => {
+          if (line.length < 2) return
+          const sortedByY = [...line].sort((a, b) => a.y - b.y)
+
+          ctx.strokeStyle = color
+          ctx.lineWidth = 2.5
+          ctx.beginPath()
+          ctx.moveTo(xScale(sortedByY[0].x), yScale(sortedByY[0].y))
+          for (let i = 1; i < sortedByY.length; i++) {
+            ctx.lineTo(xScale(sortedByY[i].x), yScale(sortedByY[i].y))
+          }
           ctx.stroke()
         })
 
@@ -188,8 +272,8 @@ const PitchCanvas = ({
         ctx.arc(x, y, r, 0, 2 * Math.PI)
         ctx.fillStyle = teamColors[player.team] || '#666'
         ctx.fill()
-        ctx.strokeStyle = 'rgba(255,255,255,0.6)'
-        ctx.lineWidth = 1
+ctx.strokeStyle = 'rgba(255,255,255,0.7)'
+      ctx.lineWidth = 1
         ctx.stroke()
 
         if (player.number != null) {
@@ -216,11 +300,11 @@ const PitchCanvas = ({
       ctx.stroke()
     }
 
-  }, [frame, voronoi, selectedPhase, overlayMode, metadata])
+  }, [frame, voronoi, selectedPhase, overlayMode, metadata, canvasSize])
 
   const drawPitchMarkings = (ctx, width, height) => {
-    ctx.strokeStyle = 'rgba(255,255,255,0.5)'
-    ctx.lineWidth = 1.5
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)'
+    ctx.lineWidth = 1.2
 
     ctx.strokeRect(0, 0, width, height)
 
@@ -256,18 +340,18 @@ const PitchCanvas = ({
     ctx.strokeRect(width - goalWidth, (height - goalHeight) / 2, goalWidth, goalHeight)
 
     // Penalty spots
-    ctx.fillStyle = 'rgba(255,255,255,0.5)'
+    ctx.fillStyle = 'rgba(255,255,255,0.3)'
     ctx.beginPath()
-    ctx.arc(width * 0.11, height / 2, 3, 0, 2 * Math.PI)
+    ctx.arc(width * 0.11, height / 2, 2, 0, 2 * Math.PI)
     ctx.fill()
 
     ctx.beginPath()
-    ctx.arc(width * 0.89, height / 2, 3, 0, 2 * Math.PI)
+    ctx.arc(width * 0.89, height / 2, 2, 0, 2 * Math.PI)
     ctx.fill()
   }
 
   return (
-    <div className="pitch-container">
+    <div className="pitch-container" ref={containerRef}>
       <canvas
         ref={canvasRef}
         className="pitch-canvas"

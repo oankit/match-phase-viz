@@ -42,14 +42,15 @@ const ThreatTimeline = ({
     })
 
     const alpha = 0.55
-    const smoothed = bins.map((bin, i) => {
+    const smoothed = []
+    bins.forEach((bin, i) => {
       const result = { ...bin }
       if (i > 0) {
         ;[homeTeam.id, awayTeam.id].forEach(teamId => {
-          result[teamId] = alpha * bin[teamId] + (1 - alpha) * (bins[i - 1][teamId] || 0)
+          result[teamId] = alpha * bin[teamId] + (1 - alpha) * (smoothed[i - 1][teamId] || 0)
         })
       }
-      return result
+      smoothed.push(result)
     })
 
     return smoothed

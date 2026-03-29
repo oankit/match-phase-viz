@@ -1276,4 +1276,45 @@ Built a cumulative xG step chart inspired by the [football-match-intelligence](h
 - `frontend/src/components/CumulativeXG.css`: Chart styles
 - `frontend/src/App.jsx`: Added CumulativeXG import and collapsible section in Analysis tab
 
+## Pitch Overlay Visual Consistency
+
+### Problem
+The pitch view used a saturated sports-broadcast green (`#3a8c3a`) with harsh white markings, which clashed with the rest of the website's warm, muted, earthy palette. Shape graph edges looked flat and the pitch control overlay appeared as scattered confetti rather than continuous control zones.
+
+### Solution
+Restyled all pitch overlays for visual cohesion:
+
+**Pitch background & markings**: Replaced bright green with muted `#3d6b4a`, reduced marking opacity from 0.5 to 0.3, reduced line width from 1.5 to 1.2, and shrunk penalty spots.
+
+**Shape graph edges**: Added dashed line style (`[6,4]`), subtle white glow behind team-colored edges, and adjusted opacity to 0.45 for better presence against the muted pitch.
+
+**Pitch control overlay**: Scaled dot radius dynamically with canvas width (`max(16, width*0.018)`), added three-stop radial gradient for smoother opacity falloff, increased base opacity for more continuous-looking regions, and softened convex hull border (thinner, lower opacity, tighter dash pattern).
+
+**Player outlines**: Increased white outline opacity from 0.6 to 0.7 for crisper contrast against the darker pitch.
+
+**Canvas CSS**: Added `border-radius: var(--radius-lg)` to match card corners elsewhere in the UI.
+
+### Files Changed
+- `frontend/src/components/PitchCanvas.jsx`: All overlay rendering changes
+- `frontend/src/components/PitchCanvas.css`: Added border-radius
+
+## Formation Lines Overlay
+
+### Problem
+The existing pitch overlays (Shape Graph and Pitch Control) show spatial relationships but don't clearly visualize the team's formation structure -- the defensive, midfield, and attack lines that coaches and analysts reference when discussing shape.
+
+### Solution
+Added a new "Formation Lines" overlay mode accessible via a tab in the Pitch View header (between Shape Graph and Pitch Control).
+
+**Algorithm**: For each team's outfield players per frame:
+1. Sort players by x-coordinate (depth on the pitch)
+2. Cluster into lines using a gap-based threshold (0.07 in normalized coordinates, ~7 meters): each player joins the current group if their x is within the threshold of the group's mean x, otherwise a new line starts
+3. Within each detected line, sort players by y-coordinate (lateral position) and connect adjacent players with a solid line in the team color
+
+This adapts in real-time as players shift positions, naturally detecting 2-4 horizontal lines regardless of whether the team is in a 4-3-3, 4-4-2, 3-5-2, or any other shape. Single isolated players (e.g. a lone striker) appear as dots without connecting lines.
+
+### Files Changed
+- `frontend/src/App.jsx`: Added `formation_lines` option to the overlay mode tabs
+- `frontend/src/components/PitchCanvas.jsx`: Implemented formation line detection and rendering logic
+
 *Last Updated: 2026-03-29*

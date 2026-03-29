@@ -73,8 +73,8 @@ def compute_xthreat_for_event(event, threat_surface):
     Compute xThreat for a single event.
 
     For passes: xThreat = threat(end_zone) - threat(start_zone)
-    For shots:  xThreat = positional xG based on distance/angle to goal
-    For goals:  xThreat = 1.0 (threat fully realised)
+    For shots:  xThreat = 0.0 (terminal events, scoring prob already in grid)
+    For goals:  xThreat = 0.0 (shown as markers, not in xT aggregation)
 
     Args:
         event: Event row from events_df
@@ -89,17 +89,11 @@ def compute_xthreat_for_event(event, threat_surface):
     start_x = event.get('coordinates_x', np.nan)
     start_y = event.get('coordinates_y', np.nan)
 
+    # Standard xT: shots are terminal events, not ball-moving actions.
+    # Scoring probability is already baked into the xT grid surface.
+    # Goals are shown separately as markers on the timeline.
     if event_type == 'SHOT':
-        start_col, start_row = get_zone(start_x, start_y)
-        if start_col is None:
-            return 0.0
-
-        if result == 'GOAL':
-            return 0.50
-
-        base_threat = threat_surface[start_row, start_col]
-        shot_xg = _shot_xg(start_x, start_y)
-        return max(base_threat, shot_xg)
+        return 0.0
 
     end_x = event.get('end_coordinates_x', np.nan)
     end_y = event.get('end_coordinates_y', np.nan)

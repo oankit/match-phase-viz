@@ -10,7 +10,7 @@ import PhaseFilter from './components/PhaseFilter'
 import useMatchData from './hooks/useMatchData'
 import './App.css'
 
-const TAB_LABELS = ['Overview', 'Analysis', 'Metrics']
+const TAB_LABELS = ['Overview', 'Analysis']
 
 function Collapsible({ title, defaultOpen = true, children }) {
   const [open, setOpen] = useState(defaultOpen)
@@ -203,7 +203,7 @@ function App() {
               </div>
             </div>
             <div className="dash-card" style={{ marginTop: 8 }}>
-              {(!selectedTeam ? teamIds : [selectedTeam]).map(teamId => (
+              {(!selectedTeam ? teamIds : [selectedTeam]).map((teamId, idx, arr) => (
                 <Timeline
                   key={teamId}
                   teamName={teamNameMap[teamId]}
@@ -213,6 +213,7 @@ function App() {
                   onTimeChange={handleTimeChange}
                   selectedPhase={selectedPhase}
                   onPhaseSelect={setSelectedPhase}
+                  showLegend={idx === arr.length - 1}
                 />
               ))}
             </div>
@@ -225,6 +226,7 @@ function App() {
               <div className="sub-tabs">
                 {[
                   { value: 'shape_graph', label: 'Shape Graph' },
+                  { value: 'formation_lines', label: 'Formation Lines' },
                   { value: 'convex_hull', label: 'Pitch Control' },
                   { value: 'none', label: 'Clean' },
                 ].map(opt => (
