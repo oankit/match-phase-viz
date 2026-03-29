@@ -1,4 +1,34 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Noto+Serif:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --bg-page: #ece8e0;
+  --bg-card: #ffffff;
+  --bg-input: #f5f3ef;
+
+  --border-subtle: #e8e4dc;
+
+  --text-primary: #1a1a1a;
+  --text-secondary: #555;
+  --text-muted: #999;
+
+  --home-color: #2b6da4;
+  --away-color: #c83c35;
+
+  --phase-attacking: #5ea832;
+  --phase-build-up: #8bc575;
+  --phase-high-press: #c47a5a;
+  --phase-mid-block: #9a8676;
+  --phase-def-block: #7c92a6;
+  --phase-counter: #bfa64e;
+  --phase-open: #b5b0a8;
+
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+
+  --font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
 
 * {
   margin: 0;
@@ -7,29 +37,33 @@
 }
 
 body {
-  font-family: 'Noto Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-family: var(--font);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #faf9f6;
-  color: #1a1a1a;
+  background-color: var(--bg-page);
+  color: var(--text-primary);
+  line-height: 1.5;
 }
 
 #root {
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
 }
 
-h1, h2, h3, h4, h5 {
-  font-family: 'Noto Serif', Georgia, serif;
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font);
   font-weight: 700;
 }
 
-/* Phase color scheme */
-.phase-high-press { background-color: #DC2626; }
-.phase-defensive-block { background-color: #2563EB; }
-.phase-counter-attack { background-color: #F59E0B; }
-.phase-mid-block { background-color: #8B5CF6; }
-.phase-attacking { background-color: #10B981; }
-.phase-build-up { background-color: #06B6D4; }
-.phase-open-play { background-color: #9CA3AF; }
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-page);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}

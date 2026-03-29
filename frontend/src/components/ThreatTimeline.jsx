@@ -17,8 +17,8 @@ const ThreatTimeline = ({
   const awayTeam = teams[1] || { id: '', name: 'Away' }
 
   const teamColors = {
-    [homeTeam.id]: '#C8102E',
-    [awayTeam.id]: '#6CABDD',
+    [homeTeam.id]: '#2b6da4',
+    [awayTeam.id]: '#c83c35',
   }
 
   const minuteData = useMemo(() => {
@@ -99,7 +99,7 @@ const ThreatTimeline = ({
       .attr('y1', height / 2)
       .attr('x2', width)
       .attr('y2', height / 2)
-      .attr('stroke', '#e5e1d8')
+      .attr('stroke', '#e0dcd4')
       .attr('stroke-width', 1)
 
     // Home team bars (up)
@@ -204,7 +204,7 @@ const ThreatTimeline = ({
           .attr('y1', isHome ? -2 : height + 2)
           .attr('x2', cx)
           .attr('y2', isHome ? cy + R + 2 : cy - R - 2)
-          .attr('stroke', '#aaa')
+          .attr('stroke', '#bbb')
           .attr('stroke-width', 1)
           .attr('stroke-dasharray', '2,2')
       })
@@ -224,9 +224,9 @@ const ThreatTimeline = ({
       .attr('x', d => xScale(d) + xScale.bandwidth() / 2)
       .attr('y', height + goalMarkerSpace + 16)
       .attr('text-anchor', 'middle')
-      .attr('fill', '#333')
-      .attr('font-size', '11px')
-      .attr('font-family', "'Noto Sans', sans-serif")
+      .attr('fill', '#999')
+      .attr('font-size', '10px')
+      .attr('font-family', "'Plus Jakarta Sans', sans-serif")
       .text(d => `${d}'`)
 
     // Current time indicator
@@ -238,10 +238,10 @@ const ThreatTimeline = ({
         .attr('y1', -goalMarkerSpace)
         .attr('x2', currentX + xScale.bandwidth() / 2)
         .attr('y2', height + goalMarkerSpace)
-        .attr('stroke', '#333')
+        .attr('stroke', '#1a1a1a')
         .attr('stroke-width', 1.5)
         .attr('stroke-dasharray', '4,3')
-        .attr('opacity', 0.5)
+        .attr('opacity', 0.4)
     }
 
     // Click interaction
@@ -261,7 +261,7 @@ const ThreatTimeline = ({
   }, [minuteData, goals, currentTime, duration, homeTeam.id, awayTeam.id])
 
   return (
-    <div className="threat-timeline">
+    <div>
       <div className="threat-timeline-header">
         <span className="threat-team-label home" style={{ color: teamColors[homeTeam.id] }}>
           {homeTeam.name}

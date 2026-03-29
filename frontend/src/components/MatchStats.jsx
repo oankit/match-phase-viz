@@ -51,8 +51,8 @@ function formatValue(value, unit) {
 }
 
 export default function MatchStats({ matchStats, homeTeam, awayTeam }) {
-  const homeColor = '#C8102E'
-  const awayColor = '#2563EB'
+  const homeColor = '#2b6da4'
+  const awayColor = '#c83c35'
 
   const stats = useMemo(() => {
     if (!matchStats) return []
@@ -64,8 +64,7 @@ export default function MatchStats({ matchStats, homeTeam, awayTeam }) {
   if (!stats.length) return null
 
   return (
-    <div className="match-stats-panel">
-      <div className="match-stats-header">Match Stats</div>
+    <div>
       <div className="match-stats-table">
         {stats.map(stat => {
           const homeBetter = stat.key === 'start_distance'

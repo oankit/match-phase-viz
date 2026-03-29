@@ -1,29 +1,13 @@
-.match-stats-panel {
-  background: #f2f0eb;
-  border-radius: 4px;
-  padding: 20px 16px;
-}
-
-.match-stats-header {
-  font-family: 'Noto Serif', Georgia, serif;
-  font-size: 18px;
-  font-weight: 700;
-  color: #1a1a1a;
-  text-align: center;
-  margin-bottom: 20px;
-}
-
 .match-stats-table {
   display: flex;
   flex-direction: column;
-  gap: 0;
 }
 
 .stat-row {
   display: flex;
   align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid #e5e1d8;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0ece4;
 }
 
 .stat-row:last-child {
@@ -52,22 +36,21 @@
 }
 
 .stat-label {
-  font-family: 'Noto Serif', Georgia, serif;
-  font-size: 13px;
-  font-weight: 700;
-  color: #1a1a1a;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .stat-value {
-  font-family: 'Noto Sans', sans-serif;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
-  color: #888;
+  color: var(--text-muted);
   min-width: 40px;
   text-align: center;
   padding: 3px 10px;
-  border-radius: 12px;
+  border-radius: var(--radius-pill);
   border: 1.5px solid transparent;
+  font-variant-numeric: tabular-nums;
 }
 
 .stat-value.highlighted {
@@ -76,11 +59,11 @@
 }
 
 .stat-value.highlighted.home {
-  color: #C8102E;
+  color: var(--home-color);
 }
 
 .stat-value.highlighted.away {
-  color: #2563EB;
+  color: var(--away-color);
 }
 
 .circle-rating {

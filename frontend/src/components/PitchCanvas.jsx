@@ -14,8 +14,8 @@ const PitchCanvas = ({
 
   // Team colors
   const teamColors = {
-    'DFL-CLU-00000S': '#DC2626', // Red for home
-    'DFL-CLU-00000B': '#2563EB'  // Blue for away
+    'DFL-CLU-00000S': '#2b6da4',
+    'DFL-CLU-00000B': '#c83c35',
   }
 
   useEffect(() => {
@@ -35,7 +35,7 @@ const PitchCanvas = ({
     ctx.clearRect(0, 0, width, height)
 
     // Draw pitch background
-    ctx.fillStyle = '#4ade80'
+    ctx.fillStyle = '#3a8c3a'
     ctx.fillRect(0, 0, width, height)
 
     // Draw pitch markings
@@ -186,10 +186,9 @@ const PitchCanvas = ({
         ctx.lineWidth = 2
         ctx.stroke()
 
-        // Player number (if available)
         if (player.number) {
           ctx.fillStyle = 'white'
-          ctx.font = 'bold 10px Arial'
+          ctx.font = 'bold 10px Inter, Arial'
           ctx.textAlign = 'center'
           ctx.textBaseline = 'middle'
           ctx.fillText(player.number, x, y)
@@ -214,10 +213,9 @@ const PitchCanvas = ({
   }, [frame, voronoi, selectedPhase, overlayMode, metadata])
 
   const drawPitchMarkings = (ctx, width, height) => {
-    ctx.strokeStyle = 'white'
-    ctx.lineWidth = 2
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)'
+    ctx.lineWidth = 1.5
 
-    // Pitch boundary
     ctx.strokeRect(0, 0, width, height)
 
     // Center line
@@ -252,6 +250,7 @@ const PitchCanvas = ({
     ctx.strokeRect(width - goalWidth, (height - goalHeight) / 2, goalWidth, goalHeight)
 
     // Penalty spots
+    ctx.fillStyle = 'rgba(255,255,255,0.5)'
     ctx.beginPath()
     ctx.arc(width * 0.11, height / 2, 3, 0, 2 * Math.PI)
     ctx.fill()
@@ -265,8 +264,8 @@ const PitchCanvas = ({
     <div className="pitch-container">
       <canvas
         ref={canvasRef}
-        width={800}
-        height={520}
+        width={940}
+        height={612}
         className="pitch-canvas"
       />
     </div>

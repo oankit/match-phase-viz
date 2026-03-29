@@ -941,4 +941,115 @@ The xThreat timeline showed incorrect threat distribution:
 - Non-goal bars remain small, showing general play flow
 - Goal football icons align with their corresponding threat bars
 
+---
+
+## Player Name Encoding & Lineup Ordering Fix (2026-03-29)
+
+### Problem
+1. Player names with non-ASCII characters (Stoger, Forster, Masovic, Hradecky, Hlozek) displayed as `?` in the lineup panel.
+2. Jersey numbers were missing from the lineup display.
+3. Some starters were incorrectly classified as substitutes (e.g., GK Hradecky, P. Hofmann, A. Losilla).
+
+### Root Cause
+1. **Name encoding**: `update_all.py` line 184 had `p['name'].encode('ascii', 'replace').decode()` which explicitly replaced all non-ASCII characters with `?`.
+2. **Jersey numbers**: `09_compute_match_stats.py` did not include `jersey_no` from kloppy's player metadata.
+3. **Starter detection**: `_compute_minutes()` used a fragile heuristic (first event within 2 minutes of kickoff) instead of kloppy's authoritative `player.starting` attribute. GKs and defenders with few early events were misclassified.
+
+### Fix
+1. Removed the `.encode('ascii', 'replace').decode()` from `update_all.py`. Added name cross-referencing from `metadata.teams` in `Lineups.jsx` as a safety net.
+2. Added `jersey_no` extraction from `getattr(p, 'jersey_no', None)` in `compute_player_stats()`. Added `#` column to `Lineups.jsx` table.
+3. Set `is_starter` from `getattr(p, 'starting', None)` in `compute_player_stats()`. Updated `_compute_minutes()` to respect the pre-set `is_starter` flag and only compute sub_on/sub_off timing.
+
+### Result
+- All names display correctly with proper Unicode characters
+- Jersey numbers shown for all players
+- Both teams correctly show 11 starters sorted by formation position (GK, defenders, midfielders, forwards)
+- Substitutes listed below starters sorted by sub_on time
+
+---
+
+## UI Redesign: UXBooster-Style Layout
+
+### Goal
+Complete frontend redesign adopting the UXBooster dashboard template (https://v0-dashboard-ui-alpha.vercel.app/). Warm light theme with rounded white cards on cream background, pill-shaped navigation, green accent score banner, collapsible sections, and 3-tab story structure.
+
+### Design System
+- **Background**: Warm cream `#f0ece4`
+- **Cards**: White `#ffffff`, border-radius 24px, subtle box shadows
+- **Accent**: `#76f214` green (score banner gradient)
+- **Typography**: Inter font family, 300-800 weights
+- **Navigation**: Top nav bar with pill-shaped tabs (dark fill for active)
+- **Sub-tabs**: Inside cards, matching UXBooster's Standard/Heatmap/Insights style
+
+### Three-Tab Structure
+1. **Overview** (Tab 0): Match Stats with circle ratings + Lineups & Player Stats
+2. **Analysis** (Tab 1 - default): Threat Timeline, Phase Detection (collapsible), Phase Filters + Team Selector, Pitch View with sub-tabs (Shape Graph/Pitch Control/Clean) alongside metric cards (collapsible)
+3. **Metrics** (Tab 2): Full-view metric grid (3 columns) with all shape/threat metrics + Phase Distribution bar chart
+
+### Components Updated
+- `index.css`: CSS custom properties for warm theme, Inter font import
+- `App.css`: Dashboard shell, top nav, score banner, card system, sub-tabs, collapsible sections, playback controls, grid layouts
+- `App.jsx`: 3-tab structure with `Collapsible` component, score banner, sub-tabs for overlay mode
+- `ThreatTimeline.css/jsx`: Removed panel wrapper, light theme D3 colors
+- `Timeline.css/jsx`: Light background, dark time indicator, light axis styling
+- `MatchStats.css/jsx`: Removed panel wrapper, light theme stat rows
+- `Lineups.css/jsx`: Removed panel wrapper, light theme tables
+- `MetricPanel.css/jsx`: Phase distribution bar chart, `fullView` prop for 3-column grid
+- `MetricCard.css`: Light input background cards
+- `PhaseFilter.css`: Pill-shaped filter buttons
+- `PitchCanvas.css/jsx`: Green pitch `#3a8c3a`, white markings at 50% opacity
+- `FormationComparisonPanel.css`: Light theme variables
+
+### Collapsibility
+Phase Detection and Pitch View sections use collapsible wrappers, allowing the user to focus on specific visualizations.
+
+---
+
+## Color Theme Consolidation
+
+### Problem
+Too many competing colors across the dashboard - 7 vivid phase colors, 3 inconsistent team color pairs (red/blue in different hues across components), 9 individual metric card border colors, and a green accent (#76f214) that clashed with the overall palette.
+
+### Solution: Minimalistic 2-Tone + Muted Earth Palette
+
+**Team colors** (match badge identity):
+- Home (VfL Bochum): `#2b6da4` (muted blue, from badge)
+- Away (Bayer Leverkusen): `#c83c35` (muted red, from badge)
+- Applied consistently across: score banner pills, threat timeline bars, match stats circles, pitch player dots, shape graph edges, pitch control overlay
+
+**Phase colors** (muted earth tones, cohesive palette):
+- Attacking: `#5ea832` (olive green)
+- Build-up: `#8bc575` (sage green)
+- High press: `#c47a5a` (terracotta)
+- Mid block: `#9a8676` (warm taupe)
+- Defensive block: `#7c92a6` (steel blue-gray)
+- Counter attack: `#bfa64e` (muted gold)
+- Open play: `#b5b0a8` (warm gray)
+
+**Removed**:
+- Green accent (#76f214) - dropped entirely
+- Per-metric card colored borders and colored value text
+- Vivid phase filter button backgrounds (replaced with neutral dark pill + small color dot)
+
+### Score Banner Redesign
+Replaced the green gradient banner with a clean flat layout matching a reference design:
+- Team name pills with team-colored backgrounds
+- Large centered badges (52px)
+- Large centered score
+- Competition name and time centered below
+
+### Files Changed
+- `index.css`: Updated `--home-color`, `--away-color`, all `--phase-*` vars, removed `--accent*` vars
+- `App.css`: Rewrote `.score-banner` to flat centered layout with team pills
+- `App.jsx`: Restructured score banner JSX (team pills, row layout)
+- `ThreatTimeline.jsx`: Team colors from CSS vars
+- `MatchStats.jsx`: Team colors matching badges
+- `PitchCanvas.jsx`: Team colors matching badges
+- `Timeline.jsx`: Muted phase colors
+- `PhaseFilter.jsx`: Neutral button style with small colored dot indicators
+- `MetricPanel.jsx`: Removed per-metric `color` props, muted phase distribution colors
+- `MetricCard.jsx`: Removed `color` prop, uniform dark text, neutral card background
+- `MetricCard.css`: Removed colored left border, neutral `--bg-input` background
+- `PhaseFilter.css`: Neutral active state (dark pill), added `.phase-dot`
+
 *Last Updated: 2026-03-29*

@@ -15,16 +15,13 @@ const Timeline = ({
 
   // Phase color mapping
   const phaseColors = {
-    // Attacking phases (team has ball)
-    'attacking': '#10B981',
-    'build_up': '#06B6D4',
-    // Defensive phases (team doesn't have ball)
-    'high_press': '#DC2626',
-    'mid_block': '#8B5CF6',
-    'defensive_block': '#2563EB',
-    // Transition
-    'counter_attack': '#F59E0B',
-    'open_play': '#9CA3AF'
+    'attacking': '#5ea832',
+    'build_up': '#8bc575',
+    'high_press': '#c47a5a',
+    'mid_block': '#9a8676',
+    'defensive_block': '#7c92a6',
+    'counter_attack': '#bfa64e',
+    'open_play': '#b5b0a8',
   }
 
   useEffect(() => {
@@ -52,7 +49,7 @@ const Timeline = ({
     g.append('rect')
       .attr('width', width)
       .attr('height', height)
-      .attr('fill', '#f3f4f6')
+      .attr('fill', '#f5f3ef')
 
     // Draw phase rectangles
     const phaseRects = g.selectAll('.phase-rect')
@@ -109,7 +106,7 @@ const Timeline = ({
       .attr('y1', 0)
       .attr('x2', xScale(currentTime))
       .attr('y2', height)
-      .attr('stroke', '#ef4444')
+      .attr('stroke', '#1a1a1a')
       .attr('stroke-width', 2)
       .attr('cursor', 'ew-resize')
 
@@ -121,10 +118,14 @@ const Timeline = ({
       })
       .ticks(10)
 
-    g.append('g')
+    const axisG = g.append('g')
       .attr('class', 'x-axis')
       .attr('transform', `translate(0,${height})`)
       .call(xAxis)
+
+    axisG.selectAll('text').attr('fill', '#999').attr('font-size', '10px')
+    axisG.selectAll('line').attr('stroke', '#ddd')
+    axisG.select('.domain').attr('stroke', '#ddd')
 
     // Drag behavior for time scrubbing
     const drag = d3.drag()

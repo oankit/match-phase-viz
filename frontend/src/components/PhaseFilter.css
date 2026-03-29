@@ -1,15 +1,10 @@
-.phase-filter-container {
-  padding: 0;
-}
-
 .phase-filter-container h3 {
-  margin: 0 0 6px 0;
+  margin: 0 0 8px 0;
   font-size: 11px;
-  font-family: 'Noto Sans', sans-serif;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #888;
+  color: var(--text-muted);
 }
 
 .phase-filter-buttons {
@@ -19,21 +14,36 @@
 }
 
 .phase-filter-btn {
-  padding: 4px 10px;
-  border: 1.5px solid;
-  border-radius: 3px;
-  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  font-size: 12px;
   font-weight: 500;
-  font-family: 'Noto Sans', sans-serif;
+  font-family: var(--font);
   cursor: pointer;
   transition: all 0.15s;
   background: transparent;
+  color: var(--text-secondary);
 }
 
 .phase-filter-btn:hover {
-  opacity: 0.85;
+  border-color: var(--text-muted);
+  background: var(--bg-input);
 }
 
 .phase-filter-btn.active {
+  background: var(--text-primary);
+  border-color: var(--text-primary);
+  color: white;
   font-weight: 600;
+}
+
+.phase-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }

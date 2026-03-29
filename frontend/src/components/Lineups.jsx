@@ -179,7 +179,7 @@ export default function Lineups({ playerStats, teams }) {
   if (!teamGroups) return null
 
   return (
-    <div className="lineups-panel">
+    <div>
       <div className="lineups-grid">
         <TeamLineup
           players={teamGroups.home}

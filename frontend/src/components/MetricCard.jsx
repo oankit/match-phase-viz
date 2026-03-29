@@ -5,23 +5,20 @@ const MetricCard = ({
   value,
   unit = '',
   description,
-  color = '#2563EB',
   showTrend = false
 }) => {
   return (
-    <div className="metric-card" style={{ borderLeftColor: color }}>
+    <div className="metric-card">
       <div className="metric-header">
         <h5>{title}</h5>
         {showTrend && (
           <span className={`trend-indicator ${value >= 0 ? 'positive' : 'negative'}`}>
-            {value >= 0 ? '▲' : '▼'}
+            {value >= 0 ? '+' : '-'}
           </span>
         )}
       </div>
       <div className="metric-value">
-        <span className="value" style={{ color }}>
-          {value}
-        </span>
+        <span className="value">{value}</span>
         {unit && <span className="unit">{unit}</span>}
       </div>
       {description && (

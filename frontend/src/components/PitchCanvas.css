@@ -1,14 +1,13 @@
 .pitch-container {
   position: relative;
   width: 100%;
-  max-width: 800px;
   margin: 0 auto;
 }
 
 .pitch-canvas {
   width: 100%;
   height: auto;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
 }
 
 .formation-svg {

@@ -1,22 +1,34 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import ThreatTimeline from './components/ThreatTimeline'
 import Timeline from './components/Timeline'
 import PitchCanvas from './components/PitchCanvas'
 import MetricPanel from './components/MetricPanel'
-
 import MatchStats from './components/MatchStats'
 import Lineups from './components/Lineups'
 import PhaseFilter from './components/PhaseFilter'
 import useMatchData from './hooks/useMatchData'
 import './App.css'
 
-const TEAM_COLORS = {
-  'DFL-CLU-00000S': '#C8102E',
-  'DFL-CLU-00000B': '#6CABDD',
+const TAB_LABELS = ['Overview', 'Analysis', 'Metrics']
+
+function Collapsible({ title, defaultOpen = true, children }) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div className="collapsible-section">
+      <div className="collapsible-header" onClick={() => setOpen(o => !o)}>
+        <span className="collapsible-title">{title}</span>
+        <span className={`collapsible-chevron ${open ? 'open' : ''}`}>&#9662;</span>
+      </div>
+      <div className={`collapsible-body ${open ? 'expanded' : 'collapsed'}`}>
+        {children}
+      </div>
+    </div>
+  )
 }
 
 function App() {
   const [selectedMatch] = useState('J03WN1')
+  const [activeTab, setActiveTab] = useState(1)
   const [currentFrame, setCurrentFrame] = useState(0)
   const [phaseFilter, setPhaseFilter] = useState(new Set(['all']))
   const [selectedPhase, setSelectedPhase] = useState(null)
@@ -52,6 +64,38 @@ function App() {
     return { home, away }
   }, [goals, currentTime, homeTeam.id, awayTeam.id])
 
+  const teamNameMap = useMemo(() => {
+    const map = {}
+    teams.forEach(t => { map[t.id] = t.name })
+    return map
+  }, [teams])
+
+  const teamIds = useMemo(() => teams.map(t => t.id), [teams])
+
+  const matchDuration = useMemo(() =>
+    matchData?.metadata?.duration
+    || matchData?.frames?.[matchData.frames.length - 1]?.t
+    || 90 * 60
+  , [matchData])
+
+  const handleTimeChange = useCallback((time) => {
+    if (!matchData?.frames) return
+    const frameIndex = matchData.frames.findIndex(f => f.t >= time)
+    setCurrentFrame(frameIndex >= 0 ? frameIndex : 0)
+  }, [matchData])
+
+  const filteredByType = useMemo(() =>
+    phaseFilter.has('all')
+      ? matchData?.phases
+      : matchData?.phases?.filter(p => phaseFilter.has(p.type))
+  , [matchData?.phases, phaseFilter])
+
+  const visiblePhases = useMemo(() =>
+    selectedTeam
+      ? filteredByType?.filter(p => p.team === selectedTeam)
+      : filteredByType
+  , [filteredByType, selectedTeam])
+
   if (loading) {
     return (
       <div className="loading-container">
@@ -60,18 +104,10 @@ function App() {
     )
   }
 
-  if (error) {
+  if (error || !matchData) {
     return (
       <div className="error-container">
-        <div className="error-message">Error: {error}</div>
-      </div>
-    )
-  }
-
-  if (!matchData) {
-    return (
-      <div className="error-container">
-        <div className="error-message">No match data available</div>
+        <div className="error-message">{error || 'No match data available'}</div>
       </div>
     )
   }
@@ -80,175 +116,204 @@ function App() {
     v.frame_id === currentFrameData?.frame_id
   ) || null
 
-  const teamNameMap = {}
-  teams.forEach(t => { teamNameMap[t.id] = t.name })
-  const teamIds = teams.map(t => t.id)
-
-  const matchDuration = matchData.metadata?.duration
-    || matchData.frames?.[matchData.frames.length - 1]?.t
-    || 90 * 60
-
-  const handleTimeChange = (time) => {
-    const frameIndex = matchData.frames.findIndex(f => f.t >= time)
-    setCurrentFrame(frameIndex >= 0 ? frameIndex : 0)
-  }
-
-  const filteredByType = phaseFilter.has('all')
-    ? matchData.phases
-    : matchData.phases?.filter(p => phaseFilter.has(p.type))
-
-  const visiblePhases = selectedTeam
-    ? filteredByType?.filter(p => p.team === selectedTeam)
-    : filteredByType
-
   return (
-    <div className="dashboard-container">
+    <div className="dashboard-shell">
 
-      {/* Score Header */}
-      <header className="score-header">
-        <div className="teams-row">
-          <div className="team-block home">
-            <span className="team-name">{homeTeam.name}</span>
-            {homeTeam.badge && (
-              <img src={homeTeam.badge} alt={homeTeam.name} className="team-badge" />
-            )}
-          </div>
-
-          <div className="score-block">
-            <span className="score">{liveScore.home} - {liveScore.away}</span>
-            <span className="match-meta">Bundesliga</span>
-          </div>
-
-          <div className="team-block away">
-            {awayTeam.badge && (
-              <img src={awayTeam.badge} alt={awayTeam.name} className="team-badge" />
-            )}
-            <span className="team-name">{awayTeam.name}</span>
-          </div>
+      {/* ── Top Navigation ── */}
+      <nav className="top-nav">
+        <span className="nav-brand">PhaseViz</span>
+        <div className="nav-tabs">
+          {TAB_LABELS.map((label, i) => (
+            <button
+              key={label}
+              className={`nav-tab ${activeTab === i ? 'active' : ''}`}
+              onClick={() => setActiveTab(i)}
+            >
+              {label}
+            </button>
+          ))}
         </div>
-
-        <div className="match-time-bar">
-          <span className="time-display">
+        <div className="nav-actions">
+          <span style={{ fontSize: 13, color: '#999', fontWeight: 500 }}>
             {Math.floor(currentTime / 60)}:{String(Math.floor(currentTime % 60)).padStart(2, '0')}
           </span>
         </div>
-      </header>
+      </nav>
 
-      {/* Threat Timeline */}
-      <ThreatTimeline
-        phases={matchData.phases}
-        metadata={matchData.metadata}
-        goals={goals}
-        currentTime={currentTime}
-        duration={matchDuration}
-        onTimeChange={handleTimeChange}
-      />
+      {/* ── Score Banner ── */}
+      <div className="score-banner">
+        <div className="score-row">
+          <div className="score-team-block home">
+            <span className="score-team-pill home">{homeTeam.name}</span>
+            {homeTeam.badge && <img src={homeTeam.badge} alt="" className="score-badge" />}
+          </div>
+          <span className="score-result">{liveScore.home} - {liveScore.away}</span>
+          <div className="score-team-block away">
+            <span className="score-team-pill away">{awayTeam.name}</span>
+            {awayTeam.badge && <img src={awayTeam.badge} alt="" className="score-badge" />}
+          </div>
+        </div>
+        <div className="score-meta">
+          <span className="score-competition">Bundesliga</span>
+          <span className="score-date">
+            {Math.floor(currentTime / 60)}:{String(Math.floor(currentTime % 60)).padStart(2, '0')}
+          </span>
+        </div>
+      </div>
 
-      {/* Match Stats */}
-      <MatchStats
-        matchStats={matchData.metadata?.match_stats}
-        homeTeam={homeTeam}
-        awayTeam={awayTeam}
-      />
+      {/* ═══ TAB 0 : Overview ═══ */}
+      {activeTab === 0 && (
+        <div className="tab-content">
+          <div className="dash-card">
+            <div className="card-header">
+              <h2 className="card-title">Match Stats</h2>
+            </div>
+            <MatchStats
+              matchStats={matchData.metadata?.match_stats}
+              homeTeam={homeTeam}
+              awayTeam={awayTeam}
+            />
+          </div>
 
-      {/* Phase Timelines */}
-      {(!selectedTeam ? teamIds : [selectedTeam]).map(teamId => (
-        <Timeline
-          key={teamId}
-          teamName={teamNameMap[teamId]}
-          phases={filteredByType?.filter(p => p.team === teamId)}
-          currentTime={currentTime}
-          duration={matchDuration}
-          onTimeChange={handleTimeChange}
-          selectedPhase={selectedPhase}
-          onPhaseSelect={setSelectedPhase}
-        />
-      ))}
+          <div className="dash-card">
+            <div className="card-header">
+              <h2 className="card-title">Lineups & Player Stats</h2>
+            </div>
+            <Lineups
+              playerStats={matchData.metadata?.player_stats}
+              teams={teams}
+            />
+          </div>
+        </div>
+      )}
 
-      <hr className="section-divider" />
+      {/* ═══ TAB 1 : Analysis (main course) ═══ */}
+      {activeTab === 1 && (
+        <div className="tab-content">
 
-      {/* Controls */}
-      <div className="controls-row">
-        <PhaseFilter
-          phaseFilter={phaseFilter}
-          setPhaseFilter={setPhaseFilter}
-        />
-        <div className="team-selector">
-          <h3>Team View</h3>
-          <div className="team-selector-buttons">
-            <button
-              className={`team-btn ${!selectedTeam ? 'active' : ''}`}
-              onClick={() => setSelectedTeam(null)}
-            >
-              Both
-            </button>
-            {teams.map(t => (
-              <button
-                key={t.id}
-                className={`team-btn ${selectedTeam === t.id ? 'active' : ''}`}
-                onClick={() => setSelectedTeam(t.id)}
-              >
-                {t.name}
+          {/* Threat Timeline */}
+          <div className="dash-card">
+            <div className="card-header">
+              <h2 className="card-title">Threat Timeline</h2>
+            </div>
+            <ThreatTimeline
+              phases={matchData.phases}
+              metadata={matchData.metadata}
+              goals={goals}
+              currentTime={currentTime}
+              duration={matchDuration}
+              onTimeChange={handleTimeChange}
+            />
+          </div>
+
+          {/* Phase Detection */}
+          <Collapsible title="Phase Detection" defaultOpen={true}>
+            <div className="dash-card" style={{ marginTop: 8 }}>
+              {(!selectedTeam ? teamIds : [selectedTeam]).map(teamId => (
+                <Timeline
+                  key={teamId}
+                  teamName={teamNameMap[teamId]}
+                  phases={filteredByType?.filter(p => p.team === teamId)}
+                  currentTime={currentTime}
+                  duration={matchDuration}
+                  onTimeChange={handleTimeChange}
+                  selectedPhase={selectedPhase}
+                  onPhaseSelect={setSelectedPhase}
+                />
+              ))}
+            </div>
+          </Collapsible>
+
+          {/* Controls */}
+          <div className="controls-row">
+            <PhaseFilter phaseFilter={phaseFilter} setPhaseFilter={setPhaseFilter} />
+            <div className="team-selector">
+              <h3>Team View</h3>
+              <div className="team-selector-buttons">
+                <button className={`team-btn ${!selectedTeam ? 'active' : ''}`} onClick={() => setSelectedTeam(null)}>Both</button>
+                {teams.map(t => (
+                  <button key={t.id} className={`team-btn ${selectedTeam === t.id ? 'active' : ''}`} onClick={() => setSelectedTeam(t.id)}>{t.name}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Pitch View - full width, centered */}
+          <div className="dash-card pitch-card">
+            <div className="card-header">
+              <h2 className="card-title">Pitch View</h2>
+              <div className="sub-tabs">
+                {[
+                  { value: 'shape_graph', label: 'Shape Graph' },
+                  { value: 'convex_hull', label: 'Pitch Control' },
+                  { value: 'none', label: 'Clean' },
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    className={`sub-tab ${overlayMode === opt.value ? 'active' : ''}`}
+                    onClick={() => setOverlayMode(opt.value)}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <PitchCanvas
+              frame={currentFrameData}
+              voronoi={currentVoronoiData}
+              selectedPhase={selectedPhase}
+              overlayMode={overlayMode}
+              metadata={matchData.metadata}
+            />
+            <div className="playback-controls">
+              <button onClick={() => setIsPlaying(!isPlaying)}>
+                {isPlaying ? 'Pause' : 'Play'}
               </button>
-            ))}
+              <label>
+                Speed:
+                <select value={playbackSpeed} onChange={e => setPlaybackSpeed(Number(e.target.value))}>
+                  <option value={0.5}>0.5x</option>
+                  <option value={1}>1x</option>
+                  <option value={2}>2x</option>
+                  <option value={4}>4x</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          {/* Match Metrics - collapsible */}
+          <Collapsible title="Match Metrics" defaultOpen={false}>
+            <div className="dash-card" style={{ marginTop: 8 }}>
+              <MetricPanel
+                phases={visiblePhases}
+                currentPhase={visiblePhases?.find(p =>
+                  currentTime >= p.start && currentTime <= p.end
+                )}
+                teamNameMap={teamNameMap}
+              />
+            </div>
+          </Collapsible>
+        </div>
+      )}
+
+      {/* ═══ TAB 2 : Metrics ═══ */}
+      {activeTab === 2 && (
+        <div className="tab-content">
+          <div className="dash-card">
+            <div className="card-header">
+              <h2 className="card-title">Match Metrics</h2>
+            </div>
+            <MetricPanel
+              phases={visiblePhases}
+              currentPhase={visiblePhases?.find(p =>
+                currentTime >= p.start && currentTime <= p.end
+              )}
+              teamNameMap={teamNameMap}
+              fullView={true}
+            />
           </div>
         </div>
-      </div>
-
-      <hr className="section-divider" />
-
-      {/* Main Content Grid */}
-      <div className="dashboard-grid">
-        <div className="visualization-panel">
-          <div className="visualization-panel-title">Pitch View</div>
-          <PitchCanvas
-            frame={currentFrameData}
-            voronoi={currentVoronoiData}
-            selectedPhase={selectedPhase}
-            overlayMode={overlayMode}
-            metadata={matchData.metadata}
-          />
-          <div className="playback-controls">
-            <button onClick={() => setIsPlaying(!isPlaying)}>
-              {isPlaying ? 'Pause' : 'Play'}
-            </button>
-            <label>
-              Speed:
-              <select value={playbackSpeed} onChange={e => setPlaybackSpeed(Number(e.target.value))}>
-                <option value={0.5}>0.5x</option>
-                <option value={1}>1x</option>
-                <option value={2}>2x</option>
-                <option value={4}>4x</option>
-              </select>
-            </label>
-            <label>
-              Overlay:
-              <select value={overlayMode} onChange={e => setOverlayMode(e.target.value)}>
-                <option value="none">None</option>
-                <option value="shape_graph">Shape Graph</option>
-                <option value="convex_hull">Pitch Control</option>
-              </select>
-            </label>
-          </div>
-        </div>
-
-        <div className="metrics-panel">
-          <MetricPanel
-            phases={visiblePhases}
-            currentPhase={visiblePhases?.find(p =>
-              currentTime >= p.start && currentTime <= p.end
-            )}
-            teamNameMap={teamNameMap}
-          />
-        </div>
-      </div>
-
-      {/* Lineups */}
-      <hr className="section-divider" />
-      <Lineups
-        playerStats={matchData.metadata?.player_stats}
-        teams={teams}
-      />
+      )}
     </div>
   )
 }

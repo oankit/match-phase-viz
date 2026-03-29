@@ -1,188 +1,255 @@
+/* ── Loading / Error ── */
 .loading-container,
 .error-container {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: #faf9f6;
+  background: var(--bg-page);
 }
 
 .loading-spinner {
-  font-size: 1.2rem;
-  color: #666;
-  font-family: 'Noto Sans', sans-serif;
+  font-size: 1rem;
+  color: var(--text-secondary);
+  font-weight: 500;
 }
 
 .error-message {
-  color: #C8102E;
-  font-size: 1.1rem;
+  color: var(--home-color);
+  font-size: 1rem;
 }
 
 /* ── Dashboard Shell ── */
-.dashboard-container {
-  width: 100%;
-  max-width: 1280px;
+.dashboard-shell {
+  max-width: 1000px;
   margin: 0 auto;
-  padding: 24px 20px 48px;
+  padding: 16px 20px 48px;
 }
 
-/* ── Score Header ── */
-.score-header {
-  text-align: center;
-  padding: 28px 0 16px;
-  border-bottom: 2px solid #1a1a1a;
-  margin-bottom: 20px;
-}
-
-.score-header .teams-row {
+/* ── Top Nav Bar (matches UXBooster exactly) ── */
+.top-nav {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 12px;
+  justify-content: space-between;
+  padding: 14px 0 18px;
 }
 
-.score-header .team-block {
+.nav-brand {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+}
+
+.nav-tabs {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 220px;
-}
-
-.score-header .team-block.home {
-  justify-content: flex-end;
-}
-
-.score-header .team-block.away {
-  justify-content: flex-start;
-}
-
-.score-header .team-name {
-  font-family: 'Noto Serif', Georgia, serif;
-  font-size: 17px;
-  font-weight: 700;
-  color: #1a1a1a;
-}
-
-.score-header .team-badge {
-  width: 44px;
-  height: 44px;
-  object-fit: contain;
-}
-
-.score-header .score-block {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 100px;
-  padding: 0 8px;
-}
-
-.score-header .score {
-  font-family: 'Noto Serif', Georgia, serif;
-  font-size: 36px;
-  font-weight: 700;
-  letter-spacing: 3px;
-  line-height: 1;
-}
-
-.score-header .match-meta {
-  font-size: 11px;
-  color: #888;
-  margin-top: 4px;
-  letter-spacing: 0.04em;
-}
-
-.match-time-bar {
-  margin-top: 8px;
-}
-
-/* ── Section Dividers ── */
-.section-divider {
-  border: none;
-  border-top: 1px solid #e5e1d8;
-  margin: 20px 0;
-}
-
-/* ── Controls Row ── */
-.controls-row {
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  padding: 12px 0;
-}
-
-.team-selector {
+  gap: 0;
+  background: transparent;
+  border-radius: var(--radius-pill);
   padding: 0;
 }
 
-.team-selector h3 {
-  margin: 0 0 6px 0;
-  font-size: 11px;
-  font-family: 'Noto Sans', sans-serif;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #888;
-}
-
-.team-selector-buttons {
-  display: flex;
-  gap: 6px;
-}
-
-.team-btn {
-  padding: 5px 12px;
-  border: 1.5px solid #ccc;
-  border-radius: 3px;
+.nav-tab {
+  padding: 8px 20px;
+  border: none;
+  border-radius: var(--radius-pill);
   background: transparent;
-  color: #555;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  font-family: var(--font);
   cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.nav-tab:hover {
+  color: var(--text-primary);
+}
+
+.nav-tab.active {
+  background: var(--text-primary);
+  color: white;
+  font-weight: 600;
+}
+
+.nav-time {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Card (matches UXBooster white cards) ── */
+.dash-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  margin-bottom: 16px;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.card-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.card-icon-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: var(--bg-input);
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Score Banner ── */
+.score-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 20px 20px;
+  margin-bottom: 16px;
+}
+
+.score-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  width: 100%;
+}
+
+.score-team-block {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.score-team-block.away {
+  flex-direction: row-reverse;
+}
+
+.score-team-pill {
+  padding: 8px 22px;
+  border-radius: var(--radius-pill);
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: 0.01em;
+}
+
+.score-team-pill.home {
+  background: var(--home-color);
+}
+
+.score-team-pill.away {
+  background: var(--away-color);
+}
+
+.score-badge {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.12));
+}
+
+.score-result {
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: 6px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.score-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 8px;
+  gap: 2px;
+}
+
+.score-competition {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.score-date {
   font-size: 12px;
   font-weight: 500;
-  font-family: 'Noto Sans', sans-serif;
+  color: var(--text-muted);
+}
+
+/* ── Sub-tabs (matches UXBooster's Standard view / Heatmap pills) ── */
+.sub-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 16px;
+}
+
+.sub-tab {
+  padding: 6px 14px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font);
+  cursor: pointer;
   transition: all 0.15s;
+  line-height: 1;
 }
 
-.team-btn:hover {
-  border-color: #999;
-  background: #f2f0eb;
+.sub-tab:hover {
+  color: var(--text-primary);
 }
 
-.team-btn.active {
-  background: #1a1a1a;
-  border-color: #1a1a1a;
+.sub-tab.active {
+  background: var(--text-primary);
   color: white;
+  font-weight: 600;
 }
 
-/* ── Main Grid ── */
-.dashboard-grid {
+/* ── Grids ── */
+.two-col-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 20px;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
 }
 
-@media (min-width: 900px) {
-  .dashboard-grid {
-    grid-template-columns: 3fr 2fr;
+@media (max-width: 800px) {
+  .two-col-grid {
+    grid-template-columns: 1fr;
   }
 }
 
-/* ── Visualization Panel ── */
-.visualization-panel {
-  background: #f2f0eb;
-  border-radius: 4px;
-  padding: 16px;
+.main-content-grid {
+  display: grid;
+  grid-template-columns: 5fr 3fr;
+  gap: 16px;
 }
 
-.visualization-panel-title {
-  font-size: 11px;
-  font-family: 'Noto Sans', sans-serif;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #888;
-  margin-bottom: 12px;
+@media (max-width: 960px) {
+  .main-content-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ── Playback Controls ── */
@@ -192,53 +259,165 @@
   align-items: center;
   margin-top: 12px;
   padding: 8px 12px;
-  background: rgba(255,255,255,0.5);
-  border-radius: 3px;
+  background: var(--bg-input);
+  border-radius: var(--radius-sm);
 }
 
 .playback-controls button {
-  padding: 5px 14px;
-  background: #1a1a1a;
+  padding: 6px 16px;
+  background: var(--text-primary);
   color: white;
   border: none;
-  border-radius: 3px;
+  border-radius: var(--radius-pill);
   cursor: pointer;
-  font-size: 12px;
-  font-family: 'Noto Sans', sans-serif;
-  font-weight: 500;
+  font-size: 13px;
+  font-family: var(--font);
+  font-weight: 600;
+  transition: opacity 0.15s;
 }
 
 .playback-controls button:hover {
-  background: #333;
+  opacity: 0.85;
 }
 
 .playback-controls label {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
-  color: #555;
+  font-size: 13px;
+  color: var(--text-secondary);
 }
 
 .playback-controls select {
-  padding: 3px 6px;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-  font-size: 12px;
-  font-family: 'Noto Sans', sans-serif;
-  background: white;
-}
-
-/* ── Metrics Side Panel ── */
-.metrics-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-/* ── Current Time Display ── */
-.time-display {
+  padding: 4px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
   font-size: 13px;
-  color: #888;
-  font-variant-numeric: tabular-nums;
+  font-family: var(--font);
+  background: white;
+  color: var(--text-primary);
+}
+
+/* ── Controls Row ── */
+.controls-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.team-selector h3 {
+  margin: 0 0 6px 0;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.team-selector-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.team-btn {
+  padding: 6px 14px;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font);
+  transition: all 0.15s;
+}
+
+.team-btn:hover {
+  border-color: var(--text-secondary);
+  background: var(--bg-input);
+}
+
+.team-btn.active {
+  background: var(--text-primary);
+  border-color: var(--text-primary);
+  color: white;
+  font-weight: 600;
+}
+
+/* ── Collapsible ── */
+.collapsible-section {
+  margin-bottom: 16px;
+}
+
+.collapsible-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  user-select: none;
+}
+
+.collapsible-header:hover {
+  background: #faf8f5;
+}
+
+.collapsible-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+}
+
+.collapsible-chevron {
+  font-size: 14px;
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+.collapsible-chevron.open {
+  transform: rotate(180deg);
+}
+
+.collapsible-body {
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.2s ease;
+}
+
+.collapsible-body.collapsed {
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.collapsible-body.expanded {
+  max-height: 4000px;
+  opacity: 1;
+}
+
+/* ── Pitch Card (full-width, centered) ── */
+.pitch-card {
+  padding: 28px;
+}
+
+.pitch-card .card-header {
+  margin-bottom: 16px;
+}
+
+.pitch-card .sub-tabs {
+  margin-bottom: 0;
+}
+
+/* ── Tab Content ── */
+.tab-content {
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }

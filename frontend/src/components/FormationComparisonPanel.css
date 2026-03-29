@@ -1,13 +1,13 @@
 .formation-comparison {
   padding: 12px;
-  background: #f2f0eb;
-  border-radius: 4px;
+  background: var(--bg-input);
+  border-radius: var(--radius-md);
 }
 
 .formation-comparison h3 {
   margin: 0 0 10px 0;
   font-size: 13px;
-  color: #1a1a1a;
+  color: var(--text-primary);
 }
 
 .comparison-row {
@@ -34,15 +34,14 @@
 .mini-formation-title {
   font-size: 11px;
   font-weight: 600;
-  font-family: 'Noto Sans', sans-serif;
-  color: #1a1a1a;
+  color: var(--text-primary);
 }
 
 .mini-formation-subtitle {
   font-size: 10px;
-  color: #aaa;
+  color: var(--text-muted);
 }
 
 .mini-formation svg {
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
