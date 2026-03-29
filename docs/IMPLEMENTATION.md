@@ -1589,12 +1589,15 @@ Replaced with `IoFootball` from `react-icons/io5` (Ionicons 5). A `getBallIcon()
 
 ---
 
-## Replace Threat Timeline with Game Momentum + Cumulative xT (2026-03-29)
+## Replace Threat Timeline with Game Momentum + Player xT (2026-03-29)
 
 ### Problem
-The Threat Timeline (per-minute xThreat bars) was difficult to interpret visually. xT is a per-event metric (per pass/carry), not naturally suited to a bar chart aggregated by minute. The user requested replacing it with two more intuitive visualizations:
-1. A **Game Momentum** chart (tug-of-war style, inspired by The Athletic)
-2. A **Cumulative xT** chart (step-line, similar to the existing Cumulative xG)
+The Threat Timeline (per-minute xThreat bars) was difficult to interpret visually. xT is a per-event metric (per pass/carry), not naturally suited to a bar chart aggregated by minute. The user requested replacing it with more intuitive visualizations informed by literature review (Fernandez et al. 2020, Xie et al. 2021 PassVizor, The Athletic's game flow).
+
+### Design Decisions (informed by literature)
+1. **Game Momentum**: Uses actual xT values with bidirectional EMA (not activity counts). Per-minute sum of positive xT blended with shot xG, capped at 0.20 to prevent lone skyscrapers. Leading + lagging EMA creates pyramid shapes around spikes (The Athletic approach).
+2. **Cumulative xT per team was removed**: Unlike cumulative xG (which has discrete steps at rare shot events), cumulative xT is a flow metric with hundreds of small increments producing a nearly smooth upward curve. The momentum chart already shows temporal team-level threat more effectively.
+3. **Player xT contribution chart added**: Bar chart showing per-player xT from pass progression. Answers "who is the team's primary engine of ball progression?" -- one of the core xT use cases per the literature.
 
 ### Solution
 
@@ -1602,32 +1605,33 @@ The Threat Timeline (per-minute xThreat bars) was difficult to interpret visuall
 - **`pipeline/07_compute_xthreat.py`**: Modified `compute_xthreat_per_phase()` and `main()` to also return the enriched `events_df` with per-event `_xt` column (previously discarded after phase aggregation)
 - **`pipeline/08_export_json.py`**: Added `export_event_xt()` function that writes `event_xt.json` containing:
   - `xt_events`: Events with non-zero xT (354 events for J03WN1) with player_id, team_id, minute, event_type, xT value
-  - `all_events`: All 1429 events (for momentum calculation using pass/shot counts)
+  - `all_events`: All 1429 events (kept for future use)
 - **`tests/test_full_pipeline.py`**: Updated to capture enriched events_df from step 7 and pass it to step 8
 
 #### Frontend Changes
-- **`frontend/src/components/MomentumChart.jsx`** (new): Tug-of-war bar chart
-  - Per-minute score = `(xG * 5) + (shots * 1) + (passes * 0.05)` (formula from reference)
-  - Home minus away score, 5-minute centered rolling average
-  - Bars colored by dominant team (blue up = home, red down = away)
-  - Goal markers (soccer ball icons), HT line, click-to-seek
-- **`frontend/src/components/CumulativeXT.jsx`** (new): Step-line chart
-  - Cumulative positive xT per team over match time
-  - Area fills + step lines, team-colored
-  - Final xT labels at end of lines, HT line, click-to-seek
+- **`frontend/src/components/MomentumChart.jsx`** (new): xT-based tug-of-war bar chart
+  - Per-minute: sum of positive xT per team, blended with max shot xG, capped at 0.20
+  - Momentum = home_threat - away_threat
+  - Bidirectional EMA (alpha=0.35): forward pass + backward pass averaged to create pyramid shapes
+  - Bars colored by dominant team, goal markers (soccer ball icons), HT line, click-to-seek
+- **`frontend/src/components/PlayerXT.jsx`** (new): Player xT contribution chart
+  - Horizontal bar chart, side-by-side layout (home left, away right)
+  - Top 10 players per team sorted by total positive xT from passes
+  - Shared scale so cross-team comparison is meaningful
 - **`frontend/src/components/MomentumChart.css`** (new)
-- **`frontend/src/components/CumulativeXT.css`** (new)
-- **`frontend/src/App.jsx`**: Replaced `ThreatTimeline` import/usage with `MomentumChart`, added `CumulativeXT` section
+- **`frontend/src/components/PlayerXT.css`** (new)
+- **`frontend/src/App.jsx`**: Replaced `ThreatTimeline` with `MomentumChart`, replaced `CumulativeXT` with `PlayerXT`
 - **`frontend/src/hooks/useMatchData.js`**: Added `event_xt.json` to data loading
 
 #### Data Flow
 ```
 Step 7: events_df gets _xt column -> returned alongside phases_df
 Step 8: export_event_xt() writes event_xt.json (354 xT events + 1429 total events)
-Frontend: useMatchData loads event_xt.json -> feeds MomentumChart and CumulativeXT
+Frontend: useMatchData loads event_xt.json -> feeds MomentumChart and PlayerXT
 ```
 
 ### Result
-- Game Momentum shows match flow with clear home/away dominance periods
-- Cumulative xT shows threat generation over time (Bochum ~1.7 xT vs Leverkusen ~0.4 xT for J03WN1)
-- ThreatTimeline component preserved in codebase but no longer used in App.jsx
+- Game Momentum shows match flow with pyramid-shaped spikes around dangerous periods
+- Player xT identifies ball progression engines (e.g., I. Ordets 0.70 xT for Bochum vs Frimpong 0.18 for Leverkusen)
+- Chart order: Game Momentum -> Cumulative xG -> xT Contributions
+- ThreatTimeline and CumulativeXT components preserved in codebase but no longer used

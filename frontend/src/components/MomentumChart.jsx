@@ -40,70 +40,71 @@ const MomentumChart = ({
   }
 
   const momentumData = useMemo(() => {
-    if (!eventXt?.all_events) return []
+    if (!eventXt?.xt_events) return []
 
     const homeId = eventXt.home_team_id
     const awayId = eventXt.away_team_id
     const totalMinutes = Math.ceil(duration / 60)
 
-    // Build per-minute scores using the match.py formula:
-    // score = (xG * 5) + (shots * 1) + (passes * 0.05)
-    // momentum = home_score - away_score
-    const minuteScores = []
+    // Per-minute threat: max(sum of positive xT, shot xG) per team, capped.
+    // Approach inspired by The Athletic: use ball-location-based possession
+    // value (xT) and shot-based xG, cap to prevent lone skyscrapers,
+    // then smooth with bidirectional EMA so spikes become pyramids.
+    const CAP = 0.20
 
-    // Build a shot xG lookup by minute and team
+    // Build shot xG lookup by minute and team
     const shotXgByMinute = {}
     if (shotXg?.shots) {
       shotXg.shots.forEach(s => {
         const min = Math.floor(s.minute)
         const key = `${min}_${s.team_id}`
-        if (!shotXgByMinute[key]) shotXgByMinute[key] = 0
-        shotXgByMinute[key] += s.xg
+        shotXgByMinute[key] = Math.max(shotXgByMinute[key] || 0, s.xg)
       })
     }
 
-    for (let m = 0; m < totalMinutes; m++) {
-      const minStart = m
-      const minEnd = m + 1
+    // Raw per-minute threat per team
+    const rawHome = new Array(totalMinutes).fill(0)
+    const rawAway = new Array(totalMinutes).fill(0)
 
-      // Filter events in this minute window
-      const minuteEvents = eventXt.all_events.filter(e => {
-        const eMin = e.minute
-        return eMin >= minStart && eMin < minEnd
-      })
-
-      const calcScore = (teamId) => {
-        const teamEvents = minuteEvents.filter(e => e.team_id === teamId)
-        const shots = teamEvents.filter(e => e.event_type === 'SHOT').length
-        const passes = teamEvents.filter(e => e.event_type === 'PASS').length
-        const xg = shotXgByMinute[`${m}_${teamId}`] || 0
-        return (xg * 5) + (shots * 1) + (passes * 0.05)
-      }
-
-      const homeScore = calcScore(homeId)
-      const awayScore = calcScore(awayId)
-
-      minuteScores.push({
-        minute: m + 1,
-        momentum: homeScore - awayScore,
-      })
-    }
-
-    // 5-minute centered rolling average
-    const windowSize = 5
-    const halfW = Math.floor(windowSize / 2)
-    const smoothed = minuteScores.map((d, i) => {
-      let sum = 0
-      let count = 0
-      for (let j = Math.max(0, i - halfW); j <= Math.min(minuteScores.length - 1, i + halfW); j++) {
-        sum += minuteScores[j].momentum
-        count++
-      }
-      return {
-        minute: d.minute,
-        momentum: sum / count,
-      }
+    eventXt.xt_events.forEach(e => {
+      if (e.xt <= 0) return
+      const m = Math.min(Math.floor(e.minute), totalMinutes - 1)
+      if (m < 0) return
+      if (e.team_id === homeId) rawHome[m] += e.xt
+      else if (e.team_id === awayId) rawAway[m] += e.xt
     })
+
+    // Blend in shot xG (take max of xT sum and shot xG for that minute)
+    for (let m = 0; m < totalMinutes; m++) {
+      const homeXg = shotXgByMinute[`${m}_${homeId}`] || 0
+      const awayXg = shotXgByMinute[`${m}_${awayId}`] || 0
+      rawHome[m] = Math.min(Math.max(rawHome[m], homeXg), CAP)
+      rawAway[m] = Math.min(Math.max(rawAway[m], awayXg), CAP)
+    }
+
+    // Momentum = home threat - away threat
+    const rawMomentum = rawHome.map((h, i) => h - rawAway[i])
+
+    // Bidirectional EMA: forward pass then backward pass, averaged.
+    // This creates pyramid shapes around spikes (leading + lagging).
+    const alpha = 0.35
+    const forward = new Array(totalMinutes)
+    const backward = new Array(totalMinutes)
+
+    forward[0] = rawMomentum[0]
+    for (let i = 1; i < totalMinutes; i++) {
+      forward[i] = alpha * rawMomentum[i] + (1 - alpha) * forward[i - 1]
+    }
+
+    backward[totalMinutes - 1] = rawMomentum[totalMinutes - 1]
+    for (let i = totalMinutes - 2; i >= 0; i--) {
+      backward[i] = alpha * rawMomentum[i] + (1 - alpha) * backward[i + 1]
+    }
+
+    const smoothed = rawMomentum.map((_, i) => ({
+      minute: i + 1,
+      momentum: (forward[i] + backward[i]) / 2,
+    }))
 
     return smoothed
   }, [eventXt, shotXg, duration])

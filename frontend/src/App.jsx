@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import MomentumChart from './components/MomentumChart'
 import CumulativeXG from './components/CumulativeXG'
-import CumulativeXT from './components/CumulativeXT'
+import PlayerXT from './components/PlayerXT'
 import Timeline from './components/Timeline'
 import PitchCanvas from './components/PitchCanvas'
 import MetricPanel, { TeamMetricPanel } from './components/MetricPanel'
@@ -281,6 +281,16 @@ function App() {
               teams={teams}
             />
           </div>
+
+          <Collapsible title="Player Contributions" defaultOpen={true}>
+            <div className="dash-card" style={{ marginTop: 8 }}>
+              <PlayerXT
+                eventXt={matchData.eventXt}
+                shotXg={matchData.shotXg}
+                metadata={matchData.metadata}
+              />
+            </div>
+          </Collapsible>
         </div>
       )}
 
@@ -434,18 +444,6 @@ function App() {
               </div>
             </Collapsible>
 
-            {/* Cumulative xT */}
-            <Collapsible title="Cumulative xT" defaultOpen={true}>
-              <div className="dash-card" style={{ marginTop: 8 }}>
-                <CumulativeXT
-                  eventXt={matchData.eventXt}
-                  metadata={matchData.metadata}
-                  currentTime={currentTime}
-                  duration={matchDuration}
-                  onTimeChange={handleTimeChange}
-                />
-              </div>
-            </Collapsible>
           </div>
 
           {/* Right side panel - Away team */}
