@@ -235,7 +235,7 @@
     "lpw_ratio": 0.8750226579209359,
     "stretching_index": 0.06486804111663587,
     "xthreat_gained": 0.0,
-    "xthreat_conceded": 0.10805102
+    "xthreat_conceded": 0.0
   },
   {
     "id": 14,
@@ -1832,7 +1832,7 @@
     "team_width": 0.5183556149732621,
     "lpw_ratio": 1.208318403775806,
     "stretching_index": 0.19567444287751792,
-    "xthreat_gained": 0.012554600000000003,
+    "xthreat_gained": -0.007445399999999999,
     "xthreat_conceded": 0.0
   },
   {
@@ -1866,7 +1866,7 @@
     "team_width": 0.6160845588235293,
     "lpw_ratio": 0.9763244234553331,
     "stretching_index": 0.20703887686994976,
-    "xthreat_gained": 0.0186973,
+    "xthreat_gained": -0.0013027000000000004,
     "xthreat_conceded": 0.0
   },
   {
@@ -2241,7 +2241,7 @@
     "lpw_ratio": 1.199688561229166,
     "stretching_index": 0.12506337409475313,
     "xthreat_gained": 0.0,
-    "xthreat_conceded": 0.10805102
+    "xthreat_conceded": 0.0
   },
   {
     "id": 132,
@@ -2819,7 +2819,7 @@
     "lpw_ratio": 1.5659040668978772,
     "stretching_index": 0.14365119816415892,
     "xthreat_gained": 0.0,
-    "xthreat_conceded": 0.035642428844191935
+    "xthreat_conceded": 0.0
   },
   {
     "id": 166,
@@ -3260,7 +3260,7 @@
     "team_width": 0.48970588235294116,
     "lpw_ratio": 1.055678830991543,
     "stretching_index": 0.16029689503172828,
-    "xthreat_gained": 0.02,
+    "xthreat_gained": 0.0,
     "xthreat_conceded": 0.0
   },
   {
@@ -3345,7 +3345,7 @@
     "team_width": 0.4037009803921569,
     "lpw_ratio": 1.5639917286753713,
     "stretching_index": 0.1731906212359299,
-    "xthreat_gained": 0.02,
+    "xthreat_gained": 0.0,
     "xthreat_conceded": 0.0
   },
   {
@@ -3583,7 +3583,7 @@
     "team_width": 0.5606372549019608,
     "lpw_ratio": 1.1697891167129841,
     "stretching_index": 0.19334079232402898,
-    "xthreat_gained": 0.02444419,
+    "xthreat_gained": 0.00444419,
     "xthreat_conceded": 0.0
   },
   {
@@ -3788,7 +3788,7 @@
     "lpw_ratio": 1.0259385709170887,
     "stretching_index": 0.20509124284754782,
     "xthreat_gained": 0.0,
-    "xthreat_conceded": 0.02855202
+    "xthreat_conceded": 0.0
   },
   {
     "id": 223,
@@ -4637,7 +4637,7 @@
     "team_width": 0.6723529411764706,
     "lpw_ratio": 0.8603869464763882,
     "stretching_index": 0.22271329668974008,
-    "xthreat_gained": 0.012881310000000002,
+    "xthreat_gained": -0.007118689999999999,
     "xthreat_conceded": 0.0
   },
   {
@@ -4824,7 +4824,7 @@
     "team_width": 0.5621078431372548,
     "lpw_ratio": 1.0398154046827661,
     "stretching_index": 0.20508538728688605,
-    "xthreat_gained": 0.02,
+    "xthreat_gained": 0.0,
     "xthreat_conceded": 0.0
   },
   {
@@ -5556,7 +5556,7 @@
     "lpw_ratio": 0.7850283983063936,
     "stretching_index": 0.1546572065787698,
     "xthreat_gained": 0.0,
-    "xthreat_conceded": 0.022773230000000005
+    "xthreat_conceded": 0.0027732300000000033
   },
   {
     "id": 327,
@@ -6202,7 +6202,7 @@
     "lpw_ratio": 0.7959486972222432,
     "stretching_index": 0.06342493951503331,
     "xthreat_gained": 0.0,
-    "xthreat_conceded": 0.02
+    "xthreat_conceded": 0.0
   },
   {
     "id": 365,
@@ -6797,7 +6797,7 @@
     "lpw_ratio": 0.5818510329240659,
     "stretching_index": 0.1212133164351177,
     "xthreat_gained": 0.0,
-    "xthreat_conceded": 0.02
+    "xthreat_conceded": 0.0
   },
   {
     "id": 400,
@@ -8258,7 +8258,7 @@
     "team_width": 0.4441176470588235,
     "lpw_ratio": 1.6143298643960895,
     "stretching_index": 0.22212430840096606,
-    "xthreat_gained": 0.10805102,
+    "xthreat_gained": 0.0,
     "xthreat_conceded": 0.0
   },
   {
@@ -8972,7 +8972,7 @@
     "team_width": 0.5260882352941175,
     "lpw_ratio": 1.0739811398924237,
     "stretching_index": 0.19881766019219255,
-    "xthreat_gained": 0.07233885123094534,
+    "xthreat_gained": 0.031059890000000003,
     "xthreat_conceded": 0.0
   },
   {
@@ -9125,7 +9125,7 @@
     "team_width": 0.48775735294117645,
     "lpw_ratio": 1.3550269288527883,
     "stretching_index": 0.21911583561419742,
-    "xthreat_gained": 0.05491138,
+    "xthreat_gained": 0.0,
     "xthreat_conceded": 0.0
   },
   {
@@ -9720,7 +9720,7 @@
     "team_width": 0.44467647058823534,
     "lpw_ratio": 1.3669706305730842,
     "stretching_index": 0.22235228171377805,
-    "xthreat_gained": 0.11275155,
+    "xthreat_gained": 0.004700530000000001,
     "xthreat_conceded": 0.0
   },
   {
@@ -9771,7 +9771,7 @@
     "team_width": 0.4075,
     "lpw_ratio": 1.7631317557697925,
     "stretching_index": 0.226503910948314,
-    "xthreat_gained": 0.05753372949077232,
+    "xthreat_gained": 0.0,
     "xthreat_conceded": 0.0
   },
   {
@@ -9822,7 +9822,7 @@
     "team_width": 0.5068382352941176,
     "lpw_ratio": 1.1816917896922876,
     "stretching_index": 0.20291251279398156,
-    "xthreat_gained": 0.06915284000000001,
+    "xthreat_gained": 0.014241460000000004,
     "xthreat_conceded": 0.0
   },
   {
@@ -15279,7 +15279,7 @@
     "team_width": 0.4102941176470586,
     "lpw_ratio": 1.4941662399726923,
     "stretching_index": 0.21106746978632596,
-    "xthreat_gained": 0.02,
+    "xthreat_gained": 0.0,
     "xthreat_conceded": 0.0
   },
   {

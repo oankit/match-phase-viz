@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { getTeamColor } from '../utils/matchCatalog'
 import './MatchStats.css'
 
 const BASIC_STATS = [
@@ -86,8 +87,8 @@ function BasicStatRow({ stat, homeColor, awayColor }) {
 }
 
 export default function MatchStats({ matchStats, homeTeam, awayTeam }) {
-  const homeColor = '#2b6da4'
-  const awayColor = '#c83c35'
+  const homeColor = getTeamColor(homeTeam?.id)
+  const awayColor = getTeamColor(awayTeam?.id)
 
   const basicStats = useMemo(() => {
     if (!matchStats) return []

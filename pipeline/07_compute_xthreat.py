@@ -1,7 +1,7 @@
 """
 Step 7: xThreat (Expected Threat)
 
-Uses a pre-computed xT value surface (Karun Singh, 12x8 grid) trained on
+Uses Karun Singh's pre-computed xT value surface (12x8 grid) trained on
 real match data via a Markov chain possession model. The value at each cell
 represents the long-term probability of scoring from that pitch zone.
 
@@ -9,6 +9,11 @@ xT(action) = threat(end_zone) - threat(start_zone)
 
 Source: https://karun.in/blog/expected-threat.html
 Grid:   pipeline/xt_grid_12x8.json (8 rows x 12 cols)
+
+A higher-resolution 16x12 grid is also available (pipeline/xt_grid_16x12.json),
+trained on 303 StatsBomb games via pipeline/train_xt_model.py. The 12x8 grid
+is used by default because it produces better visual separation in the threat
+timeline (coarser zones = larger per-pass xT deltas).
 """
 
 import json
@@ -236,7 +241,7 @@ def main(events_df, phases_df):
     print("\n" + "=" * 80)
     print("STEP 7: xTHREAT COMPUTATION")
     print("=" * 80)
-    print("Using pre-computed xT grid (Karun Singh, Markov possession model)")
+    print("Using Karun Singh 12x8 xT grid (Markov possession model)")
 
     # Compute xThreat per phase
     phases_df_with_xthreat = compute_xthreat_per_phase(events_df, phases_df)

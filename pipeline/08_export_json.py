@@ -313,14 +313,12 @@ def extract_goals(events_df, tracking_dataset, period_2_offset_secs=None):
             name = player.name if player.name else player.player_id
             player_name_map[player.player_id] = name
 
-    if period_2_offset_secs is None:
-        period_2_offset_secs = 45 * 60
-
     goal_list = []
     for _, g in shots.iterrows():
         ts = g['timestamp']
         period = g['period_id']
-        match_seconds = (period_2_offset_secs + ts.total_seconds()) if period == 2 else ts.total_seconds()
+        # timestamps are already in continuous match time (period 2 offset applied upstream)
+        match_seconds = ts.total_seconds()
 
         goal_list.append({
             'team_id': g['team_id'],
@@ -396,9 +394,120 @@ def export_metadata(tracking_dataset, match_id, output_dir, events_df=None, matc
     return str(metadata_path)
 
 
+def export_match_stats(match_stats, player_stats, output_dir, metadata_path):
+    """
+    Merge match stats and player stats into the existing metadata.json.
+
+    Args:
+        match_stats: dict from 09_compute_match_stats
+        player_stats: dict mapping player_id -> stat dict
+        output_dir: Output directory path
+        metadata_path: Path to the metadata.json file to patch
+    """
+    print("\nMerging match stats and player stats into metadata...")
+
+    with open(metadata_path, 'r', encoding='utf-8') as f:
+        metadata = json.load(f)
+
+    metadata['match_stats'] = match_stats
+
+    stats_list = []
+    for pid, ps in player_stats.items():
+        entry = dict(ps)
+        for k, v in entry.items():
+            if hasattr(v, 'item'):
+                entry[k] = v.item()
+        stats_list.append(entry)
+
+    metadata['player_stats'] = stats_list
+
+    with open(metadata_path, 'w', encoding='utf-8') as f:
+        json.dump(metadata, f, indent=2, ensure_ascii=True)
+
+    print(f"  Merged {len(match_stats)} stat categories and {len(stats_list)} player stats into {metadata_path}")
+
+
+def export_shot_xg(events_df, tracking_dataset, output_dir, period_2_offset_secs=None):
+    """
+    Export shot-level xG data for the cumulative xG chart.
+
+    Args:
+        events_df: Events DataFrame from kloppy
+        tracking_dataset: Kloppy TrackingDataset object
+        output_dir: Output directory path
+        period_2_offset_secs: Offset applied to period 2 timestamps
+
+    Returns:
+        str: Path to exported shot_xg.json
+    """
+    import importlib
+    stats_mod = importlib.import_module('09_compute_match_stats')
+
+    print("\nExporting shot xG data...")
+
+    teams = tracking_dataset.metadata.teams
+    home_id = teams[0].team_id
+    away_id = teams[1].team_id
+    team_ids = [home_id, away_id]
+
+    player_name_map = {}
+    for team in teams:
+        for player in team.players:
+            player_name_map[player.player_id] = player.name if player.name else player.player_id
+
+    direction_map = stats_mod._detect_attacking_direction(events_df, team_ids)
+
+    shots = events_df[events_df['event_type'] == 'SHOT'].sort_values('timestamp')
+
+    shot_list = []
+    for _, row in shots.iterrows():
+        # timestamps are already in continuous match time (period 2 offset applied upstream)
+        match_seconds = row['timestamp'].total_seconds()
+        minute = match_seconds / 60
+        period = row['period_id']
+
+        x = row['coordinates_x']
+        y = row['coordinates_y']
+        team_id = row['team_id']
+
+        ar = stats_mod._get_attack_right(direction_map, team_id, period)
+        xg = stats_mod._positional_xg(x, y, ar)
+
+        is_goal = row.get('result') == 'GOAL'
+
+        shot_list.append({
+            'minute': round(minute, 2),
+            'match_seconds': round(match_seconds, 1),
+            'team_id': team_id,
+            'player_id': row['player_id'],
+            'player_name': player_name_map.get(row['player_id'], row['player_id']),
+            'xg': round(xg, 3),
+            'is_goal': bool(is_goal),
+            'result': str(row.get('result', '')),
+        })
+
+    # timestamps already in continuous match time
+    match_duration_secs = events_df['timestamp'].max().total_seconds()
+
+    output = {
+        'home_team_id': home_id,
+        'away_team_id': away_id,
+        'match_duration_minutes': round(match_duration_secs / 60, 1),
+        'shots': shot_list,
+    }
+
+    shot_xg_path = output_dir / 'shot_xg.json'
+    with open(shot_xg_path, 'w', encoding='utf-8') as f:
+        json.dump(output, f, indent=2, ensure_ascii=True)
+
+    print(f"  Exported {len(shot_list)} shots to {shot_xg_path}")
+
+    return str(shot_xg_path)
+
+
 def main(match_id, tracking_dataset, tracking_df, phases_df, formations, voronoi_data, heatmaps,
          target_fps=None, output_base_dir=None, events_df=None, match_duration=None,
-         period_2_offset_secs=None):
+         period_2_offset_secs=None, match_stats=None, player_stats=None):
     """
     Main entry point for Step 8.
 
@@ -413,6 +522,8 @@ def main(match_id, tracking_dataset, tracking_df, phases_df, formations, voronoi
         target_fps: Target frame rate for downsampling (if None, uses config.EXPORT_TARGET_FPS)
         output_base_dir: Base output directory
         events_df: Events DataFrame (for goal extraction in metadata)
+        match_stats: Match stats dict from Step 9 (optional)
+        player_stats: Player stats dict from Step 9 (optional)
 
     Returns:
         dict: Paths to exported files
@@ -466,15 +577,27 @@ def main(match_id, tracking_dataset, tracking_df, phases_df, formations, voronoi
     voronoi_downsampled = voronoi_data[::downsample_factor] if voronoi_data else []
 
     # Export all components
+    metadata_path = export_metadata(tracking_dataset, match_id, output_dir, events_df=events_df,
+                                    match_duration=match_duration, period_2_offset_secs=period_2_offset_secs)
     exported_files = {
-        'metadata': export_metadata(tracking_dataset, match_id, output_dir, events_df=events_df,
-                                         match_duration=match_duration, period_2_offset_secs=period_2_offset_secs),
+        'metadata': metadata_path,
         'frames': export_frames(tracking_df_downsampled, player_team_map, output_dir, player_number_map),
         'phases': export_phases(phases_df, output_dir),
         'formations': export_formations(formations, output_dir),
         'voronoi': export_voronoi(voronoi_downsampled, output_dir),
         'heatmaps': export_heatmaps(heatmaps, output_dir),
     }
+
+    # Merge match stats and player stats into metadata if provided
+    if match_stats is not None and player_stats is not None:
+        export_match_stats(match_stats, player_stats, output_dir, metadata_path)
+
+    # Export shot xG data if events are available
+    if events_df is not None:
+        exported_files['shot_xg'] = export_shot_xg(
+            events_df, tracking_dataset, output_dir,
+            period_2_offset_secs=period_2_offset_secs,
+        )
 
     print("\n[OK] Export complete")
     print(f"\nExported files:")

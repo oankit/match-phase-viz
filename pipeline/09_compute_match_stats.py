@@ -679,9 +679,9 @@ def _compute_minutes(events_df, players):
         pid = sub['player_id']
         if pid not in players:
             continue
+        # timestamps already in continuous match time (period 2 offset applied upstream)
         ts = sub['timestamp'].total_seconds()
-        period = sub['period_id']
-        minute = int((ts + (45 * 60 if period == 2 else 0)) / 60)
+        minute = int(ts / 60)
 
         if players[pid]['is_starter']:
             players[pid]['sub_off'] = minute
@@ -700,8 +700,7 @@ def _compute_minutes(events_df, players):
         if pid not in players:
             continue
         ts = card['timestamp'].total_seconds()
-        period = card['period_id']
-        minute = int((ts + (45 * 60 if period == 2 else 0)) / 60)
+        minute = int(ts / 60)
         players[pid]['sub_off'] = minute
         players[pid]['sent_off'] = True
 
@@ -713,14 +712,12 @@ def _compute_minutes(events_df, players):
                 first_event = player_events.iloc[0]
                 first_ts = first_event['timestamp'].total_seconds()
                 first_period = first_event['period_id']
-                p['sub_on'] = int((first_ts + (45 * 60 if first_period == 2 else 0)) / 60)
+                p['sub_on'] = int(first_ts / 60)
 
-    match_duration = 90
+    # timestamps already in continuous match time
     last_event = events_df.sort_values('timestamp').iloc[-1]
     last_ts = last_event['timestamp'].total_seconds()
-    last_period = last_event['period_id']
-    if last_period == 2:
-        match_duration = int((last_ts + 45 * 60) / 60)
+    match_duration = int(last_ts / 60)
 
     for pid, p in players.items():
         if not p['is_starter'] and p['sub_on'] is None:

@@ -9,6 +9,7 @@ const useMatchData = (matchId) => {
     const loadMatchData = async () => {
       setLoading(true)
       setError(null)
+      setMatchData(null)
 
       try {
         // Load all JSON files for this match

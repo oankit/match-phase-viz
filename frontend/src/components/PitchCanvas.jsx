@@ -1,6 +1,7 @@
-import { useRef, useEffect, useState, useCallback } from 'react'
+import { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import * as d3 from 'd3'
 import { computeShapeGraph } from '../utils/shapeGraph'
+import { getTeamColor } from '../utils/matchCatalog'
 import './PitchCanvas.css'
 
 const PitchCanvas = ({
@@ -14,10 +15,12 @@ const PitchCanvas = ({
   const containerRef = useRef(null)
   const [canvasSize, setCanvasSize] = useState({ width: 940, height: 612 })
 
-  const teamColors = {
-    'DFL-CLU-00000S': '#2b6da4',
-    'DFL-CLU-00000B': '#c83c35',
-  }
+  const teamColors = useMemo(() => {
+    const teams = metadata?.teams || []
+    const map = {}
+    teams.forEach(t => { map[t.id] = getTeamColor(t.id) })
+    return map
+  }, [metadata?.teams])
 
   const measureContainer = useCallback(() => {
     if (containerRef.current) {
@@ -190,12 +193,21 @@ const PitchCanvas = ({
 
     // Draw formation lines overlay (defensive / midfield / attack lines)
     if (overlayMode === 'formation_lines' && frame.players) {
-      const gkIds = new Set()
+      const playerLineMap = {}
       if (metadata?.teams) {
         metadata.teams.forEach(team => {
           team.players?.forEach(p => {
-            if (p.position && p.position.toLowerCase().startsWith('goalkeeper')) {
-              gkIds.add(p.id)
+            const pos = (p.position || '').toLowerCase()
+            if (pos.startsWith('goalkeeper')) {
+              playerLineMap[p.id] = 'gk'
+            } else if (pos.includes('back') || pos.includes('center back')) {
+              playerLineMap[p.id] = 'def'
+            } else if (pos.includes('midfield')) {
+              playerLineMap[p.id] = 'mid'
+            } else if (pos.includes('wing') || pos.includes('striker') || pos.includes('forward') || pos.includes('attacking')) {
+              playerLineMap[p.id] = 'att'
+            } else {
+              playerLineMap[p.id] = 'unknown'
             }
           })
         })
@@ -210,40 +222,21 @@ const PitchCanvas = ({
       Object.entries(teamGroups).forEach(([teamId, players]) => {
         if (players.length < 4) return
 
-        let outfield
-        if (gkIds.size > 0) {
-          outfield = players.filter(p => !gkIds.has(p.id))
-        } else {
-          const meanX = players.reduce((s, p) => s + p.x, 0) / players.length
-          let maxDist = 0, gkIdx = 0
-          players.forEach((p, i) => {
-            const dist = Math.abs(p.x - meanX)
-            if (dist > maxDist) { maxDist = dist; gkIdx = i }
-          })
-          outfield = players.filter((_, i) => i !== gkIdx)
-        }
-
-        if (outfield.length < 4) return
-
-        const sorted = [...outfield].sort((a, b) => a.x - b.x)
-
-        const lines = [[sorted[0]]]
-        const threshold = 0.07
-        for (let i = 1; i < sorted.length; i++) {
-          const lastGroup = lines[lines.length - 1]
-          const groupMeanX = lastGroup.reduce((s, p) => s + p.x, 0) / lastGroup.length
-          if (Math.abs(sorted[i].x - groupMeanX) < threshold) {
-            lastGroup.push(sorted[i])
-          } else {
-            lines.push([sorted[i]])
+        const lineGroups = { def: [], mid: [], att: [] }
+        players.forEach(p => {
+          const line = playerLineMap[p.id]
+          if (line && lineGroups[line]) {
+            lineGroups[line].push(p)
+          } else if (line !== 'gk') {
+            lineGroups.mid.push(p)
           }
-        }
+        })
 
         const color = teamColors[teamId] || '#666'
         ctx.setLineDash([])
         ctx.globalAlpha = 0.7
 
-        lines.forEach(line => {
+        Object.values(lineGroups).forEach(line => {
           if (line.length < 2) return
           const sortedByY = [...line].sort((a, b) => a.y - b.y)
 

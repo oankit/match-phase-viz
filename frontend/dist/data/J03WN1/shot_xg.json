@@ -1,7 +1,7 @@
 {
   "home_team_id": "DFL-CLU-00000S",
   "away_team_id": "DFL-CLU-00000B",
-  "match_duration_minutes": 94.3,
+  "match_duration_minutes": 94.4,
   "shots": [
     {
       "minute": 0.87,
@@ -44,36 +44,6 @@
       "result": "OFF_TARGET"
     },
     {
-      "minute": 51.2,
-      "match_seconds": 3072.1,
-      "team_id": "DFL-CLU-00000B",
-      "player_id": "DFL-OBJ-002G02",
-      "player_name": "M. Diaby",
-      "xg": 0.185,
-      "is_goal": false,
-      "result": "OFF_TARGET"
-    },
-    {
-      "minute": 60.46,
-      "match_seconds": 3627.7,
-      "team_id": "DFL-CLU-00000B",
-      "player_id": "DFL-OBJ-0002LI",
-      "player_name": "N. Amiri",
-      "xg": 0.041,
-      "is_goal": false,
-      "result": "BLOCKED"
-    },
-    {
-      "minute": 61.73,
-      "match_seconds": 3703.8,
-      "team_id": "DFL-CLU-00000B",
-      "player_id": "DFL-OBJ-002GOI",
-      "player_name": "Jeremie Frimpong",
-      "xg": 0.295,
-      "is_goal": false,
-      "result": "POST"
-    },
-    {
       "minute": 18.06,
       "match_seconds": 1083.6,
       "team_id": "DFL-CLU-00000S",
@@ -92,16 +62,6 @@
       "xg": 0.014,
       "is_goal": false,
       "result": "OFF_TARGET"
-    },
-    {
-      "minute": 65.45,
-      "match_seconds": 3927.2,
-      "team_id": "DFL-CLU-00000B",
-      "player_id": "DFL-OBJ-0002LI",
-      "player_name": "N. Amiri",
-      "xg": 0.153,
-      "is_goal": false,
-      "result": "BLOCKED"
     },
     {
       "minute": 22.69,
@@ -154,16 +114,6 @@
       "result": "GOAL"
     },
     {
-      "minute": 79.08,
-      "match_seconds": 4744.6,
-      "team_id": "DFL-CLU-00000S",
-      "player_id": "DFL-OBJ-0000YV",
-      "player_name": "P. Hofmann",
-      "xg": 0.246,
-      "is_goal": false,
-      "result": "BLOCKED"
-    },
-    {
       "minute": 35.63,
       "match_seconds": 2137.7,
       "team_id": "DFL-CLU-00000B",
@@ -172,16 +122,6 @@
       "xg": 0.012,
       "is_goal": false,
       "result": "SAVED"
-    },
-    {
-      "minute": 85.33,
-      "match_seconds": 5119.7,
-      "team_id": "DFL-CLU-00000S",
-      "player_id": "DFL-OBJ-000172",
-      "player_name": "K. St\u00f6ger",
-      "xg": 0.055,
-      "is_goal": true,
-      "result": "GOAL"
     },
     {
       "minute": 42.42,
@@ -194,22 +134,82 @@
       "result": "OFF_TARGET"
     },
     {
-      "minute": 89.41,
-      "match_seconds": 5364.4,
-      "team_id": "DFL-CLU-00000S",
-      "player_id": "DFL-OBJ-J01AQV",
-      "player_name": "M. Broschinski",
-      "xg": 0.072,
-      "is_goal": false,
-      "result": "SAVED"
-    },
-    {
       "minute": 44.94,
       "match_seconds": 2696.2,
       "team_id": "DFL-CLU-00000S",
       "player_id": "DFL-OBJ-0000YV",
       "player_name": "P. Hofmann",
       "xg": 0.016,
+      "is_goal": false,
+      "result": "SAVED"
+    },
+    {
+      "minute": 52.39,
+      "match_seconds": 3143.6,
+      "team_id": "DFL-CLU-00000B",
+      "player_id": "DFL-OBJ-002G02",
+      "player_name": "M. Diaby",
+      "xg": 0.185,
+      "is_goal": false,
+      "result": "OFF_TARGET"
+    },
+    {
+      "minute": 61.65,
+      "match_seconds": 3699.3,
+      "team_id": "DFL-CLU-00000B",
+      "player_id": "DFL-OBJ-0002LI",
+      "player_name": "N. Amiri",
+      "xg": 0.041,
+      "is_goal": false,
+      "result": "BLOCKED"
+    },
+    {
+      "minute": 62.92,
+      "match_seconds": 3775.3,
+      "team_id": "DFL-CLU-00000B",
+      "player_id": "DFL-OBJ-002GOI",
+      "player_name": "Jeremie Frimpong",
+      "xg": 0.295,
+      "is_goal": false,
+      "result": "POST"
+    },
+    {
+      "minute": 66.65,
+      "match_seconds": 3998.7,
+      "team_id": "DFL-CLU-00000B",
+      "player_id": "DFL-OBJ-0002LI",
+      "player_name": "N. Amiri",
+      "xg": 0.153,
+      "is_goal": false,
+      "result": "BLOCKED"
+    },
+    {
+      "minute": 80.27,
+      "match_seconds": 4816.2,
+      "team_id": "DFL-CLU-00000S",
+      "player_id": "DFL-OBJ-0000YV",
+      "player_name": "P. Hofmann",
+      "xg": 0.246,
+      "is_goal": false,
+      "result": "BLOCKED"
+    },
+    {
+      "minute": 86.52,
+      "match_seconds": 5191.2,
+      "team_id": "DFL-CLU-00000S",
+      "player_id": "DFL-OBJ-000172",
+      "player_name": "K. St\u00f6ger",
+      "xg": 0.055,
+      "is_goal": true,
+      "result": "GOAL"
+    },
+    {
+      "minute": 90.6,
+      "match_seconds": 5435.9,
+      "team_id": "DFL-CLU-00000S",
+      "player_id": "DFL-OBJ-J01AQV",
+      "player_name": "M. Broschinski",
+      "xg": 0.072,
       "is_goal": false,
       "result": "SAVED"
     }

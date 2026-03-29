@@ -9,6 +9,7 @@ shapely>=2.0.0
 
 # Soccer analytics
 socceraction>=1.0.0
+multimethod<2.0
 
 # Optional: Fallback loader and visualization
 floodlight>=0.3.0

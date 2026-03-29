@@ -14,7 +14,7 @@ Phase-Aware Soccer Analytics Dashboard - Python Pipeline
 | 4 | Voronoi |  Complete |  Passing | Polygon-based output |
 | 5 | Formations |  Complete |  Passing | RoleRep algorithm adapted |
 | 6 | Pressing Heatmap |  Complete |  Passing | KDE-based |
-| 7 | xThreat |  Complete | � Not tested | Simplified MVP model |
+| 7 | xThreat |  Complete |  Passing | 16x12 grid trained on 303 StatsBomb games |
 | 8 | Export JSON |  Complete | � Not tested | Ready for frontend |
 
 ---
@@ -335,7 +335,7 @@ tests/
 2. **Substitutions**: Formation computation stops using frames after a substitution occurs mid-phase
 
 ### Implementation Limitations
-1. **xThreat Model**: Using simplified position-based model instead of trained transition matrix
+1. **xThreat Model**: Using Karun Singh's pre-trained 12x8 Markov chain xT grid. A 16x12 grid trained on 303 StatsBomb games is available but produces less visible threat variation
 2. **Voronoi unbounded regions**: Some edge players have unbounded Voronoi regions (clipped to pitch boundaries)
 3. **Formation stability**: Only computed for phases with e3 frames of consistent 10-player lineups
 
@@ -380,10 +380,11 @@ tests/
 - More efficient for frame-by-frame processing
 - Avoids expensive DataFrame melting/pivoting
 
-### Why simplified xThreat?
-- Full xThreat requires training on large datasets (StatsBomb open data)
-- Simplified model provides correct data structure for frontend
-- Can be replaced with trained model later without frontend changes
+### xThreat Model (Updated)
+- Using Karun Singh's 12x8 xT grid (confirmed identical to the published pre-trained model)
+- A 16x12 grid trained on 303 StatsBomb games is available (`pipeline/xt_grid_16x12.json`) but the 12x8 gives better visual results
+- Training script: `pipeline/train_xt_model.py` (for generating alternative grids)
+- The grid is provider-agnostic: DFL events are valued by looking up start/end zone threat, no SPADL conversion needed
 
 ### Why polygon-based Voronoi (not rasterized)?
 - More accurate representation of pitch control
@@ -510,11 +511,13 @@ mplsoccer>=1.1.0       # Visualization
   - Defensive block: Tightened all thresholds
   - Counter-attack: Distance 10m→7.5m, velocity 4→3 m/s
 
-### xThreat Model Upgrade ✓
-- Replaced hand-crafted linear threat model with pre-computed Markov chain xT grid
-- Source: Karun Singh's xT model (12x8 grid), trained on real match data
-- Grid file: `pipeline/xt_grid_12x8.json`, values range 0.006-0.257
-- No training needed -- loaded pre-built grid
+### xThreat Model Upgrade ✓ (Updated 2026-03-29)
+- Confirmed the existing 12x8 grid (`xt_grid_12x8.json`) is identical to Karun Singh's published pre-trained grid (trained from real match data via Markov chain, NOT hand-crafted)
+- Also trained a 16x12 grid using socceraction's `ExpectedThreat` class on 303 StatsBomb open data games (World Cup 2018/2022, Champions League, La Liga, Bundesliga) -- 669,888 SPADL actions, 53 iterations to convergence
+- Training script: `pipeline/train_xt_model.py`, output: `pipeline/xt_grid_16x12.json` (shape 12x16, values 0.003-0.320, NOT vertically symmetric)
+- **Decision: kept 12x8 grid as default** -- the 16x12 grid's finer zones produce ~42% smaller per-pass xT deltas, resulting in sparser/shorter bars in the Threat Timeline. The 12x8 grid gives better visual separation
+- Dependency fix: pinned `multimethod<2.0` in requirements.txt to resolve `ImportError` in socceraction (multimethod 2.0.2 removed `overload` export needed by pandera)
+- Added `statsbombpy` dependency for the training script
 
 ### Output Path Configuration ✓ (March 27 PM)
 - Fixed output folder mapping permanently
@@ -1316,5 +1319,256 @@ This adapts in real-time as players shift positions, naturally detecting 2-4 hor
 ### Files Changed
 - `frontend/src/App.jsx`: Added `formation_lines` option to the overlay mode tabs
 - `frontend/src/components/PitchCanvas.jsx`: Implemented formation line detection and rendering logic
+
+---
+
+## Fix: xThreat Calculation Corrected to Standard Model (2026-03-29)
+
+### Problem
+The Threat Timeline was dominated by 3 massive spikes at goal minutes (18, 34, 87) making all other bars invisible. Two root causes:
+
+1. **Goals assigned xT = 0.50**: The pipeline hardcoded `return 0.50` for GOAL events. Most pass xT values are 0.001-0.04, making goal bars 10-50x taller than everything else.
+2. **Broken EMA smoothing**: The frontend smoothing formula used `bins[i-1]` (original unsmoothed values) instead of `smoothed[i-1]` (previous smoothed output), creating ~45% ghost echoes in adjacent minutes.
+
+### Research
+Per the standard xT model (Karun Singh, Markov possession model) and the socceraction reference implementation (KU Leuven):
+- **Shots (goals and non-goals) should NOT receive xT values**. Scoring probability is already baked into the xT grid surface (`s(x,y) * g(x,y)` term). Assigning xT to shots is double-counting.
+- **Only successful passes/carries** should get `xT = threat(end_zone) - threat(start_zone)`.
+- Goals are terminal events that end possession, not ball-moving actions.
+
+### Fix
+1. **Pipeline** (`pipeline/07_compute_xthreat.py`): Changed `compute_xthreat_for_event()` to return `0.0` for all SHOT events (both goals and non-goals). Only passes retain xT values.
+2. **Frontend** (`frontend/src/components/ThreatTimeline.jsx`): Fixed EMA smoothing to use recursive formula (`smoothed[i-1]` instead of `bins[i-1]`).
+
+### Result
+- Threat Timeline now shows the flow of attacking build-up through passes, not goal-dominated spikes
+- Goal events are still visible as soccer ball markers (from metadata, unaffected)
+- EMA properly smooths minute-to-minute transitions without ghost echoes
+
+### Files Changed
+- `pipeline/07_compute_xthreat.py`: Shots return 0.0, updated docstring
+- `frontend/src/components/ThreatTimeline.jsx`: Fixed recursive EMA smoothing (alpha=0.82)
+- `pipeline/08_export_json.py`: Fixed double period-2 offset in `extract_goals()` and `export_shot_xg()` - timestamps are already in continuous match time from upstream offset, so no additional offset needed. This fixed the 3rd goal (Stoger, min 86) showing at minute 132.
+
+## Pipeline Integration: Match Stats, Player Stats & Shot xG
+
+### Problem
+Match stats (possession, shots, fouls, etc.), player stats (minutes, goals, assists, xG, etc.), and shot-level xG data were computed by standalone scripts in `tests/` (`patch_player_minutes.py`, `export_shot_xg.py`) and manually patched into `metadata.json`. This meant they were not part of the reproducible pipeline and had to be run separately after every pipeline execution.
+
+### Solution
+Integrated Step 9 (`09_compute_match_stats.py`) and shot xG export directly into the pipeline:
+
+**`08_export_json.py`**: Added two new export functions:
+- `export_match_stats()`: Merges match stats and player stats (as an array) into the existing `metadata.json` after it is written
+- `export_shot_xg()`: Extracts shot events, computes positional xG using the calibrated logistic model from Step 9, and exports `shot_xg.json`
+
+The `main()` function now accepts optional `match_stats` and `player_stats` parameters. When provided, it calls both new functions automatically.
+
+**`tests/test_full_pipeline.py`**: Added Step 9 between xThreat and Export. `compute_all()` runs before the export step and passes its output to `step8.main()`.
+
+The pipeline now produces all 7 JSON files in a single run: `metadata.json` (with stats), `frames.json`, `phases.json`, `formations.json`, `pitch_control.json`, `heatmaps.json`, and `shot_xg.json`.
+
+### Files Changed
+- `pipeline/08_export_json.py`: Added `export_match_stats()`, `export_shot_xg()`, updated `main()` signature
+- `tests/test_full_pipeline.py`: Added step 9 import and execution, updated summary
+
+---
+
+## Live Metrics: Rest Defence Score (RDS) & Opponent Threat Index (OTI)
+
+### Problem
+The Match Metrics panel displayed only phase-level static metrics (defensive line height, compactness, etc.) that update per-phase. There was no real-time structural assessment of how well a team is organized defensively or how threatening the opponent's positioning is.
+
+### Academic Foundation
+
+**Rest Defence Score (RDS)** -- composite metric evaluating the structure maintained while in possession (0-100 scale):
+
+| Component | Weight | Formula | Source |
+|-----------|--------|---------|--------|
+| S_num (Numerical Balance) | 40% | `defenders_behind_ball / (opp_outlets + 0.5)`, capped at ratio=3 | Bauer & Anzer (2021) |
+| S_comp (Spatial Compactness) | 30% | `1 - (hull_area - ideal) / (max - ideal)`, from convex hull of rest-def unit | Spearman (2018) |
+| S_ctrl (Pitch Control Dominance) | 30% | Reach-time grid over defensive third, with outlet penalty for opponent-controlled central cells | Alai framework |
+
+**Opponent Threat Index (OTI)** -- latent danger from opponent positioning (0-100 scale):
+
+| Component | Weight | Formula | Source |
+|-----------|--------|---------|--------|
+| S_goal (Spatial Threat) | 30% | `cos(theta) / d^2` per opponent in attacking half | Linke et al. (2016) |
+| O_num (Numerical Overload) | 25% | 5 corridor overload check in defensive third | Bauer & Anzer (2021) |
+| D_space (Space Dominance) | 30% | Reach-time grid over danger zone, central cells weighted 1.5x | Spearman (2018) |
+| M_kin (Kinetic Threat) | 15% | `speed * proximity_to_goal` (approximation of velocity dot product) | Linke et al. (2016) |
+
+### Data Constraints & Design Decisions
+
+**Available per frame (frontend)**: player positions `{x, y, speed}` in normalized 0-1 coordinates, ball position `{x, y}`, team IDs.
+
+**Not available**: velocity direction vectors (only scalar speed), per-cell xT values on the frontend.
+
+**Critical issue**: The pipeline's `pitch_control.json` grid only covers points inside the attacking team's convex hull (15-66 sparse points per frame). This is the *opposite* of where RDS needs data (the defending team's zone behind the ball) and unreliable for OTI's danger zone.
+
+**Solution**: Compute a lightweight 8x5 reach-time grid on the frontend from raw player positions, scoped to just the relevant zone (defending third for S_ctrl, attacking third for D_space). For each grid point, the nearest player by Euclidean distance determines control. This is the same algorithm the pipeline uses (`dist / max_speed`), just applied to a coarse grid on-the-fly.
+
+### Score Interpretation
+
+| RDS Score | Label | Meaning |
+|-----------|-------|---------|
+| 80-100 | Excellent | Numerical superiority, tight shape, outlets caged |
+| 65-79 | Good | Adequate coverage with minor gaps |
+| 50-64 | Fair | Players back but spread or opponent has space |
+| 35-49 | Poor | Vulnerable to transition |
+| 0-34 | Critical | High vulnerability, likely caught out |
+
+| OTI Score | Label | Meaning |
+|-----------|-------|---------|
+| 70-100 | Critical | Fast transition, numerical overload, deep penetration |
+| 50-69 | Major | Significant threat building |
+| 35-49 | Moderate | Some attacking presence |
+| 20-34 | Minor | Recycling possession |
+| 0-19 | Low | Opponent defending deep |
+
+### UI Integration
+
+Scores displayed in the Match Metrics panel as per-team side-by-side rows with color-coded labels. Colors match the qualitative assessment (green=Excellent, blue=Good, amber=Fair, red=Poor, dark red=Critical for RDS; inverse scale for OTI).
+
+### Files Changed
+- `frontend/src/utils/restDefence.js`: New utility with `computeRestDefenceScores()` and `computeThreatScores()` implementing the 3-component RDS and 4-component OTI with frontend reach-time grids
+- `frontend/src/components/MetricPanel.jsx`: Added `useMemo` hooks for RDS/OTI computation, `ScoreRow` component for colored label display
+- `frontend/src/components/MetricPanel.css`: Added `.score-row`, `.score-number`, `.score-label` styles
+- `frontend/src/App.jsx`: Passes `players` and `ball` props to MetricPanel
+
+### References
+1. Bauer, P., & Anzer, G. (2021). "Data-driven detection of counterpressing in professional football." *Data Mining and Knowledge Discovery*.
+2. Spearman, W. (2018). "Beyond Expected Goals." *MIT Sloan Sports Analytics Conference*.
+3. Alai. "Building Identity Through Data." alai.dk.
+4. Linke, D., et al. (2016). "Real-time analysis of tactical behavior in soccer."
+
+---
+
+## BETA Tags & Metric Tooltips
+
+### Changes
+- Added **BETA** tag next to "Rest Defence" and "Threat Index" labels in the Match Metrics panel, matching the existing beta tag style used on Formation Lines.
+- Added **hover tooltips** on all metric labels explaining what each metric measures:
+  - Defensive Line: Mean x-position of the deepest 4 outfield defenders
+  - Compactness: Convex hull area of outfield players
+  - Pressure: Average defenders within 5 m of the ball carrier
+  - Team Length / Width / Stretch Index: spatial spread measures
+  - xT Gained / Conceded: cumulative expected threat
+  - Rest Defence: composite score description (numerical balance + compactness + pitch control)
+  - Threat Index: composite score description (spatial threat + overload + space dominance + momentum)
+- Labels with tooltips show a dotted underline and help cursor on hover.
+
+### Files Changed
+- `frontend/src/components/MetricPanel.jsx`: Added `tooltip` field to METRICS, passed to `MetricRow` and `ScoreRow`, added BETA tag rendering
+- `frontend/src/components/MetricPanel.css`: Added `.live-label[title]` hover styles and `.live-label .beta-tag` positioning
+
+---
+
+## Horizontally Collapsible Side Panels
+
+### Problem
+The original Match Metrics panel was a bottom section that required scrolling away from the pitch view. Metrics should be visible alongside the pitch at all times.
+
+### Solution
+Restructured the Analysis tab into a 3-column flex layout: left sidebar (home team) | main content | right sidebar (away team). Each sidebar is independently collapsible horizontally.
+
+### Layout
+- `analysis-layout`: flex row container with `align-items: flex-start`
+- Panels are `position: sticky; top: 12px` so they stay visible while scrolling main content
+- Open state: 290px wide, scrollable content with max-height
+- Collapsed state: 34px vertical tab strip with team name written vertically
+- Main content (`analysis-main`) uses `flex: 1` to fill remaining space
+- Responsive: stacks vertically at <= 800px viewport width
+
+### Interaction
+- `<<` button in left panel header collapses it leftward; `>>` in right panel collapses rightward
+- Collapsed state shows a clickable vertical tab with the team name (rotated text)
+- Clicking the vertical tab expands the panel back
+- State managed by `leftPanelOpen` / `rightPanelOpen` in App component
+
+### Panel Content (per team)
+- Team header with colored left-border accent
+- Current phase badge
+- Live metrics: Defensive Line, Compactness, Pressure, Team Length, Team Width, Stretch Index
+- Cumulative xT Gained and xT Conceded
+- Rest Defence and Threat Index scores (BETA)
+- Per-team Phase Distribution donut chart
+
+### Components
+- `TeamMetricPanel`: Single-team metric display with per-team phase filtering (named export from MetricPanel.jsx)
+- `TeamMetricRow` / `TeamScoreRow`: Single-team row variants (label | value layout)
+- `PhaseDistChart`: Configurable `size` prop for compact display in side panels
+- RDS/OTI scores computed once in `App.jsx` via `useMemo` and passed as props
+
+### Files Changed
+- `frontend/src/App.jsx`: Added `leftPanelOpen`/`rightPanelOpen` state; restructured Analysis tab into `analysis-layout` with `side-panel` aside elements flanking `analysis-main`
+- `frontend/src/App.css`: Added `.analysis-layout`, `.analysis-main`, `.side-panel`, `.side-panel-inner`, `.side-panel-tab`, collapse/expand styles, sticky positioning, responsive breakpoints
+- `frontend/src/components/MetricPanel.jsx`: Added `TeamMetricPanel` (named export), `TeamMetricRow`, `TeamScoreRow` components
+- `frontend/src/components/MetricPanel.css`: Added `.team-metric-panel`, `.team-metric-row`, `.team-score-row`, `.team-phase-dist` styles
+
+---
+
+## Match Selector & Dynamic Team Colors
+
+### Problem
+The dashboard was hardcoded to a single match (J03WN1). Team colors were static (`#2b6da4`, `#c83c35`) and the match date was not displayed.
+
+### Solution
+Added a match catalog, match selector dropdown, dynamic team colors derived from club branding, and match date display.
+
+### Match Catalog (`frontend/src/utils/matchCatalog.js`)
+Static catalog of all 7 IDSSE matches extracted from the DFL XML matchinformation files:
+
+| Match ID | Home | Away | Competition | Date |
+|---|---|---|---|---|
+| J03WN1 | VfL Bochum 1848 | Bayer 04 Leverkusen | Bundesliga | 2023-05-27 |
+| J03WMX | 1. FC Koln | FC Bayern Munchen | Bundesliga | 2023-05-27 |
+| J03WOH | Fortuna Dusseldorf | SSV Jahn Regensburg | 2. Bundesliga | 2022-08-26 |
+| J03WOY | Fortuna Dusseldorf | F.C. Hansa Rostock | 2. Bundesliga | 2022-09-10 |
+| J03WPY | Fortuna Dusseldorf | 1. FC Nurnberg | 2. Bundesliga | 2022-10-15 |
+| J03WQQ | Fortuna Dusseldorf | FC St. Pauli | 2. Bundesliga | 2022-11-05 |
+| J03WR9 | Fortuna Dusseldorf | 1. FC Kaiserslautern | 2. Bundesliga | 2022-11-11 |
+
+Exports: `MATCH_CATALOG`, `getMatchInfo(matchId)`, `getTeamColor(teamId)`, `getTeamBadge(teamId)`, `formatMatchDate(dateStr)`
+
+### Team Colors
+Each club has a brand color derived from its logo:
+- VfL Bochum: `#1560A4` (blue)
+- Bayer 04 Leverkusen: `#E32221` (red)
+- FC Koln: `#ED1C24` (red)
+- FC Bayern Munchen: `#DC052D` (red)
+- Fortuna Dusseldorf: `#E30613` (red)
+- Hansa Rostock: `#003F87` (blue)
+- FC St. Pauli: `#5D4037` (brown)
+- 1. FC Nurnberg: `#8B1A2B` (burgundy)
+- SSV Jahn Regensburg: `#D32F2F` (red)
+- 1. FC Kaiserslautern: `#E30613` (red)
+
+Colors are applied via CSS custom properties `--home-color` and `--away-color`, updated dynamically on match change.
+
+### Team Badges
+Logo PNG files in `frontend/public/assets/` mapped to team IDs in the catalog. Badges from the catalog are used as fallback when pipeline metadata doesn't include them.
+
+### Match Selector
+- Native `<select>` dropdown in the top nav (right-aligned via `.nav-actions`)
+- Shows all 7 matches: `{Home} vs {Away} ({date})`
+- On change: resets frame, phase filter, team selection, playback state
+
+### Data-Unavailable State
+When a selected match has no pipeline data yet:
+- Score banner shows team names, badges, colors, result, and date from the catalog
+- Content area shows a centered "Match data not yet available" message with an info icon
+- No tabs content renders (guarded by `dataReady` flag)
+
+### Files Changed
+- `frontend/src/utils/matchCatalog.js`: New file - match catalog with team colors, badges, metadata
+- `frontend/src/hooks/useMatchData.js`: Clears `matchData` to `null` before loading new match
+- `frontend/src/App.jsx`: Added `selectedMatch` state with setter, match selector dropdown, dynamic colors from catalog, match date display, `dataReady` guard
+- `frontend/src/App.css`: Added `.match-selector`, `.match-select`, `.data-status`, `.data-unavailable`, `.score-match-date` styles
+- `frontend/src/components/PitchCanvas.jsx`: Replaced hardcoded `TEAM_COLORS` with dynamic `getTeamColor()` lookup
+- `frontend/src/components/ThreatTimeline.jsx`: Replaced hardcoded colors with `getTeamColor()`
+- `frontend/src/components/CumulativeXG.jsx`: Replaced hardcoded colors with `getTeamColor()`
+- `frontend/src/components/MatchStats.jsx`: Replaced hardcoded colors with `getTeamColor()`
+- `frontend/src/components/MetricPanel.jsx`: Replaced hardcoded colors with `getTeamColor()` and CSS variable fallbacks
 
 *Last Updated: 2026-03-29*

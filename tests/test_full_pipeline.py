@@ -1,6 +1,6 @@
 """
 Full Pipeline Integration Test
-Tests all 8 steps together: Load → Features → Phases → Voronoi → Formations → Pressing → xThreat → Export
+Tests all 9 steps together: Load > Features > Phases > Voronoi > Formations > Pressing > xThreat > Export (+ Match Stats & Shot xG)
 """
 import sys
 sys.path.insert(0, '../pipeline')
@@ -21,11 +21,12 @@ step5 = importlib.import_module('05_compute_formations')
 step6 = importlib.import_module('06_compute_pressing')
 step7 = importlib.import_module('07_compute_xthreat')
 step8 = importlib.import_module('08_export_json')
+step9 = importlib.import_module('09_compute_match_stats')
 
 print("="*80)
 print("FULL PIPELINE INTEGRATION TEST")
 print("="*80)
-print("\nTesting all 8 steps: Load > Features > Phases > Voronoi > Formations > Pressing > xThreat > Export\n")
+print("\nTesting all 9 steps: Load > Features > Phases > Voronoi > Formations > Pressing > xThreat > Stats > Export\n")
 
 # Configuration based on PROCESSING_MODE in config.py
 match_id = "J03WN1"
@@ -124,7 +125,16 @@ phases_df_with_xthreat = step7.main(events_df, phases_df)
 print(f"[OK] Computed xThreat for {len(phases_df_with_xthreat)} phases\n")
 
 # ============================================================================
-# STEP 8: Export to JSON
+# STEP 9: Compute Match & Player Stats
+# ============================================================================
+print("="*80)
+print("[STEP 9] Computing match & player stats")
+print("="*80)
+match_stats, player_stats = step9.compute_all(events_df, tracking_dataset)
+print(f"[OK] Computed {len(match_stats)} stat categories, {len(player_stats)} player stats\n")
+
+# ============================================================================
+# STEP 8: Export to JSON (including stats + shot xG)
 # ============================================================================
 print("="*80)
 print("[STEP 8] Exporting to JSON")
@@ -143,6 +153,8 @@ exported_files = step8.main(
     match_duration=match_duration,
     events_df=events_df,
     period_2_offset_secs=p2_offset_secs,
+    match_stats=match_stats,
+    player_stats=player_stats,
 )
 
 # ============================================================================
@@ -163,6 +175,8 @@ print(f"  Phase segments: {len(phases_df_with_xthreat)}")
 print(f"  Voronoi frames: {len(voronoi_data)}")
 print(f"  Formations: {len(formations)}")
 print(f"  Pressing heatmaps: {len(heatmaps)}")
+print(f"  Match stat categories: {len(match_stats)}")
+print(f"  Player stats: {len(player_stats)}")
 
 print(f"\nExported JSON files:")
 for key, path in exported_files.items():
@@ -174,5 +188,5 @@ output_path = os.path.dirname(list(exported_files.values())[0]) if exported_file
 print(f"\nOutput directory: {output_path}/")
 
 print("\n" + "="*80)
-print("[SUCCESS] All 8 pipeline steps completed!")
+print("[SUCCESS] All 9 pipeline steps completed!")
 print("="*80)

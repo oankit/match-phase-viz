@@ -1,5 +1,6 @@
 import { useRef, useEffect, useMemo } from 'react'
 import * as d3 from 'd3'
+import { getTeamColor } from '../utils/matchCatalog'
 import './CumulativeXG.css'
 
 const CumulativeXG = ({
@@ -16,8 +17,8 @@ const CumulativeXG = ({
   const awayTeam = teams[1] || { id: '', name: 'Away' }
 
   const teamColors = {
-    [homeTeam.id]: '#2b6da4',
-    [awayTeam.id]: '#c83c35',
+    [homeTeam.id]: getTeamColor(homeTeam.id),
+    [awayTeam.id]: getTeamColor(awayTeam.id),
   }
 
   const { homeData, awayData, maxXg } = useMemo(() => {
