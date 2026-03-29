@@ -1,0 +1,145 @@
+.lineups-panel {
+  margin-top: 8px;
+}
+
+.lineups-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 900px) {
+  .lineups-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.team-lineup {
+  background: #f2f0eb;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.lineup-header {
+  padding: 10px 16px;
+  border-bottom: 3px solid #ccc;
+}
+
+.lineup-team-name {
+  font-family: 'Noto Serif', Georgia, serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.lineup-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-family: 'Noto Sans', sans-serif;
+}
+
+.lineup-table thead th {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #999;
+  padding: 8px 6px 4px;
+  text-align: left;
+  border-bottom: 1px solid #e5e1d8;
+}
+
+.lineup-table thead th.col-jersey {
+  width: 28px;
+  text-align: center;
+}
+
+.lineup-table thead th.col-pos {
+  width: 36px;
+  text-align: center;
+}
+
+.lineup-table thead th.col-mins {
+  width: 36px;
+  text-align: center;
+}
+
+.lineup-table thead th.col-stats {
+  width: 100px;
+}
+
+.lineup-table tbody tr {
+  border-bottom: 1px solid #ece8e0;
+}
+
+.lineup-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.lineup-table tbody tr.sub-player {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.lineup-table td {
+  padding: 7px 6px;
+  vertical-align: middle;
+}
+
+.col-sub-marker {
+  width: 16px;
+  text-align: center;
+  padding-left: 8px !important;
+}
+
+.sub-arrow {
+  font-size: 8px;
+  display: inline-block;
+}
+
+.sub-arrow.off {
+  color: #999;
+}
+
+td.col-jersey {
+  font-size: 12px;
+  font-weight: 700;
+  color: #666;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+td.col-pos {
+  font-size: 11px;
+  font-weight: 600;
+  color: #888;
+  text-align: center;
+}
+
+td.col-name {
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+td.col-mins {
+  text-align: center;
+  color: #888;
+  font-variant-numeric: tabular-nums;
+}
+
+td.col-stats {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.stat-icon {
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.85;
+}
+
+.stat-icon svg {
+  display: block;
+}

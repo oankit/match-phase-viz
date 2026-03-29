@@ -33,9 +33,9 @@ const Timeline = ({
     const svg = d3.select(svgRef.current)
     svg.selectAll('*').remove()
 
-    const margin = { top: 20, right: 20, bottom: 40, left: 50 }
+    const margin = { top: 8, right: 16, bottom: 24, left: 16 }
     const width = svgRef.current.clientWidth - margin.left - margin.right
-    const height = 120 - margin.top - margin.bottom
+    const height = 70 - margin.top - margin.bottom
 
     const g = svg
       .attr('width', width + margin.left + margin.right)

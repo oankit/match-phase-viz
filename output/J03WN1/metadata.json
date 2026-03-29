@@ -23,7 +23,7 @@
         },
         {
           "id": "DFL-OBJ-000172",
-          "name": "K. St\u00f6ger"
+          "name": "K. Stöger"
         },
         {
           "id": "DFL-OBJ-0000YV",
@@ -59,7 +59,7 @@
         },
         {
           "id": "DFL-OBJ-0027LO",
-          "name": "P. F\u00f6rster"
+          "name": "P. Förster"
         },
         {
           "id": "DFL-OBJ-0028NB",
@@ -79,7 +79,7 @@
         },
         {
           "id": "DFL-OBJ-002GM0",
-          "name": "E. Ma\u0161ovi\u0107"
+          "name": "E. Mašović"
         },
         {
           "id": "DFL-OBJ-002G4G",
@@ -93,7 +93,7 @@
       "players": [
         {
           "id": "DFL-OBJ-0026NY",
-          "name": "L. Hr\u00e1deck\u00fd"
+          "name": "L. Hrádecký"
         },
         {
           "id": "DFL-OBJ-0001UP",
@@ -145,7 +145,7 @@
         },
         {
           "id": "DFL-OBJ-002GH4",
-          "name": "L. K\u00f6hl"
+          "name": "L. Köhl"
         },
         {
           "id": "DFL-OBJ-002GOI",
@@ -157,7 +157,7 @@
         },
         {
           "id": "DFL-OBJ-J01G0J",
-          "name": "A. Hlo\u017eek"
+          "name": "A. Hložek"
         },
         {
           "id": "DFL-OBJ-J01K4C",
@@ -177,5 +177,35 @@
   "pitch": {
     "length": 105.0,
     "width": 68.0
+  },
+  "goals": [
+    {
+      "team_id": "DFL-CLU-00000S",
+      "player_id": "DFL-OBJ-0027LO",
+      "player_name": "P. Förster",
+      "minute": 18,
+      "match_seconds": 1083.6,
+      "period": 1
+    },
+    {
+      "team_id": "DFL-CLU-00000S",
+      "player_id": "DFL-OBJ-0027FG",
+      "player_name": "T. Asano",
+      "minute": 33,
+      "match_seconds": 2017.8,
+      "period": 1
+    },
+    {
+      "team_id": "DFL-CLU-00000S",
+      "player_id": "DFL-OBJ-000172",
+      "player_name": "K. Stöger",
+      "minute": 85,
+      "match_seconds": 5119.7,
+      "period": 2
+    }
+  ],
+  "badges": {
+    "DFL-CLU-00000S": "/assets/VfL Bochum 1848.png",
+    "DFL-CLU-00000B": "/assets/Bayer_04_Leverkusen.png"
   }
 }

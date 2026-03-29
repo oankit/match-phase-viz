@@ -14,11 +14,10 @@ const useMatchData = (matchId) => {
         // Load all JSON files for this match
         const basePath = `/data/${matchId}`
 
-        const [metadata, frames, phases, formations, voronoi, heatmaps] = await Promise.all([
+        const [metadata, frames, phases, voronoi, heatmaps] = await Promise.all([
           fetch(`${basePath}/metadata.json`).then(r => r.json()),
           fetch(`${basePath}/frames.json`).then(r => r.json()),
           fetch(`${basePath}/phases.json`).then(r => r.json()),
-          fetch(`${basePath}/formations.json`).then(r => r.json()),
           fetch(`${basePath}/pitch_control.json`).then(r => r.json()).catch(() => []),
           fetch(`${basePath}/heatmaps.json`).then(r => r.json()).catch(() => [])
         ])
@@ -28,7 +27,6 @@ const useMatchData = (matchId) => {
           metadata,
           frames,
           phases,
-          formations,
           voronoi,
           heatmaps
         })

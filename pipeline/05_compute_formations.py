@@ -1,16 +1,16 @@
 """
-Step 5: Formation Graphs with Shape Graph Detection
+Step 5: Formation Graphs with Shape Graph Detection + EFPI Template Matching
 
 Combines RoleRep (Bialkowski et al. 2014) for stable role assignment with
 shape graphs (Brandes et al. 2025, Sotudeh 2026) for edge filtering and
-gap-based clustering for automatic formation label detection.
+EFPI-style template matching (Bekkers 2025) for formation label detection.
 
 Pipeline:
 1. RoleRep EM assigns consistent role IDs across frames in a phase
 2. Aggregate mean positions per role
 3. Compute shape graph (iterative Delaunay edge removal by angular stability)
-4. Assign players to vertical bands via gap-based 1D clustering on x-coords
-5. Derive formation label (e.g., "4-4-2") from band counts
+4. EFPI template matching: Hungarian algorithm against predefined formations
+5. Handles 10-man teams (red card) with 9-player templates
 
 Reference: docs/soccercpd/rolerep.py, docs/soccercpd/soccercpd.py
 """
@@ -23,6 +23,7 @@ from scipy.spatial import Delaunay
 from tqdm import tqdm
 
 import config
+from formation_templates import get_templates
 
 
 # =============================================================================
@@ -314,139 +315,86 @@ def delaunay_edge_mat(coords):
 
 
 # =============================================================================
-# Band Assignment & Formation Label Detection
+# EFPI Template-Based Formation Detection (Bekkers 2025)
 # =============================================================================
 
-def _try_band_split(x_coords, sorted_x, gaps, k):
+def scale_to_template(positions, template):
     """
-    Try splitting players into k bands using the k-1 largest gaps.
-
-    Returns (band_labels, band_counts, band_thresholds) or None if invalid.
-    """
-    n = len(x_coords)
-    num_splits = k - 1
-
-    if num_splits > len(gaps) or num_splits == 0:
-        return None
-
-    gap_indices = np.argsort(gaps)[::-1][:num_splits]
-    gap_indices_sorted = np.sort(gap_indices)
-
-    # Compute thresholds (midpoint of each gap)
-    band_thresholds = []
-    for gi in gap_indices_sorted:
-        threshold = (sorted_x[gi] + sorted_x[gi + 1]) / 2.0
-        band_thresholds.append(float(threshold))
-
-    # Assign each player to a band
-    band_labels = np.zeros(n, dtype=int)
-    for i in range(n):
-        band = 0
-        for threshold in band_thresholds:
-            if x_coords[i] > threshold:
-                band += 1
-        band_labels[i] = band
-
-    # Count players per band (back to front)
-    band_counts = []
-    for b in range(k):
-        count = int((band_labels == b).sum())
-        band_counts.append(count)
-
-    return band_labels, band_counts, band_thresholds
-
-
-def assign_vertical_bands(positions, n_bands=None):
-    """
-    Assign players to vertical bands (defense/midfield/attack) using
-    gap-based 1D clustering on x-coordinates.
-
-    Strategy: default to k=3 bands (defense/midfield/attack) since most
-    soccer formations use 3 lines. Fall back to k=4 if a 4-line formation
-    is clearly better, or k=2 only if the team is extremely split.
+    Scale player positions to match template bounding box (EFPI Section 2.1).
 
     Args:
-        positions: (10, 2) array of outfield player positions
-        n_bands: if None, automatically select (default k=3)
+        positions: (N, 2) array of player positions
+        template: (N, 2) array of template positions
 
     Returns:
-        Tuple of (band_labels, band_counts, band_thresholds):
-            - band_labels: (10,) array of band indices (0=defense, ...)
-            - band_counts: list of player counts per band, e.g. [4, 4, 2]
-            - band_thresholds: list of x-coordinate thresholds between bands
+        (N, 2) array of scaled positions
     """
-    n = len(positions)
-    if n == 0:
-        return np.array([], dtype=int), [], []
+    pos_min = positions.min(axis=0)
+    pos_max = positions.max(axis=0)
+    tpl_min = template.min(axis=0)
+    tpl_max = template.max(axis=0)
 
-    x_coords = positions[:, 0]
-    sorted_indices = np.argsort(x_coords)
-    sorted_x = x_coords[sorted_indices]
+    pos_range = pos_max - pos_min
+    tpl_range = tpl_max - tpl_min
 
-    # Compute gaps between consecutive sorted players
-    gaps = np.diff(sorted_x)
-
-    if len(gaps) == 0:
-        return np.zeros(n, dtype=int), [n], []
-
-    # If n_bands is specified, use it directly
-    if n_bands is not None:
-        result = _try_band_split(x_coords, sorted_x, gaps, n_bands)
-        if result:
-            return result
-        return np.zeros(n, dtype=int), [n], []
-
-    # Default: try k=3 first (most common formation structure)
-    result_3 = _try_band_split(x_coords, sorted_x, gaps, 3)
-    result_4 = _try_band_split(x_coords, sorted_x, gaps, 4)
-
-    # Check if k=3 result is reasonable (no band with 0 players)
-    if result_3 and all(c > 0 for c in result_3[1]):
-        # Check if k=4 is clearly better: look for a formation like 4-2-3-1
-        # where the 3rd largest gap is still substantial
-        if result_4 and all(c > 0 for c in result_4[1]):
-            # k=4 is valid; prefer it only if the 3rd gap is > 60% of the 2nd gap
-            sorted_gaps = np.sort(gaps)[::-1]
-            if len(sorted_gaps) >= 3 and sorted_gaps[2] > 0.6 * sorted_gaps[1]:
-                return result_4
-
-        return result_3
-
-    # k=3 had empty bands, fall back to k=2
-    result_2 = _try_band_split(x_coords, sorted_x, gaps, 2)
-    if result_2 and all(c > 0 for c in result_2[1]):
-        return result_2
-
-    # Ultimate fallback: single band
-    return np.zeros(n, dtype=int), [n], []
+    scale = np.where(pos_range > 1e-6, tpl_range / pos_range, 1.0)
+    return (positions - pos_min) * scale + tpl_min
 
 
-def detect_formation_label(band_counts):
+def match_formation_template(positions):
     """
-    Convert band counts to a formation string (e.g., "4-4-2").
+    EFPI-style formation detection: match outfield player positions
+    to the best-fitting formation template using Hungarian assignment.
+
+    Supports both 10-player (normal) and 9-player (red card) teams.
 
     Args:
-        band_counts: list like [4, 4, 2] or [4, 3, 3] or [3, 5, 2]
+        positions: (N, 2) array of outfield player positions (raw pitch coords)
+                   N = 10 (normal) or 9 (red card)
 
     Returns:
-        str: formation label like "4-4-2"
+        Tuple of (formation_label, assignment_cost, position_assignment)
     """
-    if not band_counts:
-        return "unknown"
+    num_players = len(positions)
+    templates = get_templates(num_players)
 
-    # Validate sum (should be 10 for outfield players)
-    total = sum(band_counts)
-    if total != 10:
-        return f"?-({total})"
+    if not templates:
+        return 'unknown', float('inf'), None
 
-    return "-".join(str(c) for c in band_counts)
+    best_label = None
+    best_cost = float('inf')
+    best_assignment = None
+
+    for label, template in templates.items():
+        if len(template) != num_players:
+            continue
+
+        # Scale player positions to match template dimensions
+        scaled_positions = scale_to_template(positions, template)
+
+        # Cost matrix: Euclidean distance between each player and each template position
+        cost_matrix = np.linalg.norm(
+            scaled_positions[:, np.newaxis, :] - template[np.newaxis, :, :],
+            axis=2
+        )
+
+        # Hungarian algorithm: find optimal assignment
+        row_ind, col_ind = linear_sum_assignment(cost_matrix)
+        total_cost = cost_matrix[row_ind, col_ind].sum()
+
+        if total_cost < best_cost:
+            best_cost = total_cost
+            best_label = label
+            best_assignment = col_ind
+
+    return best_label, best_cost, best_assignment
 
 
 # =============================================================================
 # Phase Formation Computation
 # =============================================================================
 
-def compute_formation_for_phase(phase_frames, team_players, player_team_map):
+def compute_formation_for_phase(phase_frames, team_players, player_team_map, gk_ids=None):
     """
     Compute formation graph for a single phase segment.
 
@@ -454,14 +402,19 @@ def compute_formation_for_phase(phase_frames, team_players, player_team_map):
         phase_frames: DataFrame of tracking frames for this phase
         team_players: List of player IDs (all team players, will filter to on-field)
         player_team_map: dict mapping player_id to team_id
+        gk_ids: set of known goalkeeper player IDs (from kloppy metadata)
 
     Returns:
         dict with formation data, or None if insufficient data
     """
+    if gk_ids is None:
+        gk_ids = set()
+
     # Extract positions for each frame, identifying which players are on field
     positions_list = []       # centroid-normalized (for RoleRep + shape graph)
-    raw_positions_list = []   # raw pitch coords (for band assignment / formation label)
+    raw_positions_list = []   # raw pitch coords (for template matching)
     on_field_players = None
+    num_expected = None       # 10 (normal) or 9 (red card)
 
     for idx in range(len(phase_frames)):
         row = phase_frames.iloc[idx]
@@ -480,13 +433,24 @@ def compute_formation_for_phase(phase_frames, team_players, player_team_map):
                     frame_positions.append([x, y])
                     frame_player_ids.append(player_id)
 
-        # Set on-field players from first frame with 11 players (10 outfield + GK)
-        if on_field_players is None and len(frame_positions) == 11:
-            positions_array = np.array(frame_positions)
-            gk_idx = np.argmin(positions_array[:, 0])
+        # Set on-field players from first frame with >= 10 players (handles red card)
+        if on_field_players is None and len(frame_positions) >= 10:
+            # Identify GK using kloppy metadata (authoritative)
+            gk_idx = None
+            for i, pid in enumerate(frame_player_ids):
+                if pid in gk_ids:
+                    gk_idx = i
+                    break
+
+            # Fallback: player most isolated on x-axis from team centroid
+            if gk_idx is None:
+                positions_array = np.array(frame_positions)
+                team_mean_x = positions_array[:, 0].mean()
+                gk_idx = int(np.argmax(np.abs(positions_array[:, 0] - team_mean_x)))
 
             on_field_players = [pid for i, pid in enumerate(frame_player_ids) if i != gk_idx]
             on_field_positions = [pos for i, pos in enumerate(frame_positions) if i != gk_idx]
+            num_expected = len(on_field_players)  # 10 (normal) or 9 (red card)
 
             raw_pos = np.array(on_field_positions)
             raw_positions_list.append(raw_pos)
@@ -494,7 +458,7 @@ def compute_formation_for_phase(phase_frames, team_players, player_team_map):
             positions_list.append(positions)
             continue
 
-        # Only use frames where the same 10 outfield players are present
+        # Only use frames where the same outfield players are present
         if on_field_players is not None:
             outfield_positions = []
             for player_id in on_field_players:
@@ -504,7 +468,7 @@ def compute_formation_for_phase(phase_frames, team_players, player_team_map):
                 except ValueError:
                     break
 
-            if len(outfield_positions) == 10:
+            if len(outfield_positions) == num_expected:
                 raw_pos = np.array(outfield_positions)
                 raw_positions_list.append(raw_pos)
                 positions = normalize_locs(raw_pos.copy())
@@ -512,6 +476,8 @@ def compute_formation_for_phase(phase_frames, team_players, player_team_map):
 
     if len(positions_list) < 3:
         return None
+
+    num_roles = num_expected  # 10 or 9
 
     # Run RoleRep for stable role identity across frames
     role_distns, assignments_list = run_rolerep(positions_list, max_iter=5, tol=0.01, verbose=False)
@@ -522,7 +488,6 @@ def compute_formation_for_phase(phase_frames, team_players, player_team_map):
     # Compute mean positions and per-frame Delaunay adjacency
     role_positions_list = []
     adj_matrices = []
-    num_roles = len(positions_list[0])
 
     for positions, assignments in zip(positions_list, assignments_list):
         role_ordered = np.zeros((num_roles, 2))
@@ -531,24 +496,23 @@ def compute_formation_for_phase(phase_frames, team_players, player_team_map):
 
         role_positions_list.append(role_ordered)
 
-        # Per-frame Delaunay adjacency (kept for mean_adjacency backward compat)
+        # Per-frame Delaunay adjacency
         adj = delaunay_edge_mat(role_ordered)
         adj_matrices.append(adj)
 
     # Aggregate
-    mean_positions = np.mean(role_positions_list, axis=0)  # (10, 2)
-    mean_adjacency = np.mean(adj_matrices, axis=0)  # (10, 10)
+    mean_positions = np.mean(role_positions_list, axis=0)
+    mean_adjacency = np.mean(adj_matrices, axis=0)
 
     # Compute stability (positional variance per role)
-    role_positions_array = np.array(role_positions_list)  # (num_frames, 10, 2)
-    positional_variance = np.var(role_positions_array, axis=0)  # (10, 2)
-    stability_scores = 1.0 / (1.0 + positional_variance.sum(axis=1))  # (10,)
+    role_positions_array = np.array(role_positions_list)
+    positional_variance = np.var(role_positions_array, axis=0)
+    stability_scores = 1.0 / (1.0 + positional_variance.sum(axis=1))
 
-    # === NEW: Shape graph on aggregated mean positions (centroid-normalized) ===
+    # Shape graph on aggregated mean positions (centroid-normalized)
     shape_adj, shape_edges = compute_shape_graph(mean_positions)
 
-    # === NEW: Band assignment uses RAW pitch positions for meaningful labels ===
-    # Reorder raw positions by role assignment (same as role_positions_list but raw)
+    # Reorder raw positions by role assignment
     raw_role_positions_list = []
     for raw_pos, assignments in zip(raw_positions_list, assignments_list):
         raw_role_ordered = np.zeros((num_roles, 2))
@@ -556,9 +520,10 @@ def compute_formation_for_phase(phase_frames, team_players, player_team_map):
             raw_role_ordered[role_idx] = raw_pos[player_idx]
         raw_role_positions_list.append(raw_role_ordered)
 
-    raw_mean_positions = np.mean(raw_role_positions_list, axis=0)  # (10, 2)
-    band_labels, band_counts, band_thresholds = assign_vertical_bands(raw_mean_positions)
-    formation_label = detect_formation_label(band_counts)
+    raw_mean_positions = np.mean(raw_role_positions_list, axis=0)
+
+    # EFPI template matching (replaces gap-based band assignment)
+    formation_label, match_cost, position_assignment = match_formation_template(raw_mean_positions)
 
     return {
         'mean_positions': mean_positions,
@@ -567,10 +532,9 @@ def compute_formation_for_phase(phase_frames, team_players, player_team_map):
         'shape_graph_adjacency': shape_adj,
         'mean_adjacency': mean_adjacency,
         'stability_scores': stability_scores,
-        'band_assignments': band_labels,
-        'band_counts': band_counts,
-        'band_thresholds': band_thresholds,
         'formation_label': formation_label,
+        'match_cost': float(match_cost) if match_cost != float('inf') else None,
+        'num_players': num_roles,
         'num_frames': len(positions_list),
     }
 
@@ -579,7 +543,7 @@ def compute_formation_for_phase(phase_frames, team_players, player_team_map):
 # Team & Match Level
 # =============================================================================
 
-def compute_formations_for_team(tracking_df, phases_df, player_team_map, team_id):
+def compute_formations_for_team(tracking_df, phases_df, player_team_map, team_id, gk_ids=None):
     """
     Compute formation graphs for one team across all phases.
     """
@@ -603,7 +567,7 @@ def compute_formations_for_team(tracking_df, phases_df, player_team_map, team_id
         if len(phase_frames) == 0:
             continue
 
-        formation = compute_formation_for_phase(phase_frames, team_players, player_team_map)
+        formation = compute_formation_for_phase(phase_frames, team_players, player_team_map, gk_ids=gk_ids)
 
         if formation is not None:
             formations.append({
@@ -616,10 +580,9 @@ def compute_formations_for_team(tracking_df, phases_df, player_team_map, team_id
                 'shape_graph_adjacency': formation['shape_graph_adjacency'].tolist(),
                 'mean_adjacency': formation['mean_adjacency'].tolist(),
                 'stability_scores': formation['stability_scores'].tolist(),
-                'band_assignments': formation['band_assignments'].tolist(),
-                'band_counts': formation['band_counts'],
-                'band_thresholds': formation['band_thresholds'],
                 'formation_label': formation['formation_label'],
+                'match_cost': formation['match_cost'],
+                'num_players': formation['num_players'],
                 'num_frames': formation['num_frames'],
             })
 
@@ -636,7 +599,7 @@ def compute_formations_for_team(tracking_df, phases_df, player_team_map, team_id
     return formations
 
 
-def compute_all_formations(tracking_df, phases_df, player_team_map):
+def compute_all_formations(tracking_df, phases_df, player_team_map, gk_ids=None):
     """
     Compute formation graphs for all teams and phases.
     """
@@ -649,7 +612,7 @@ def compute_all_formations(tracking_df, phases_df, player_team_map):
 
     for team_id in teams:
         team_formations = compute_formations_for_team(
-            tracking_df, phases_df, player_team_map, team_id
+            tracking_df, phases_df, player_team_map, team_id, gk_ids=gk_ids
         )
         all_formations.extend(team_formations)
 
@@ -671,18 +634,24 @@ def main(tracking_dataset, tracking_df, phases_df):
         List[dict]: Formation data
     """
     print("\n" + "=" * 80)
-    print("STEP 5: FORMATION GRAPHS (Shape Graph + Band Detection)")
+    print("STEP 5: FORMATION GRAPHS (Shape Graph + EFPI Template Matching)")
     print("=" * 80)
 
-    # Get player-team mapping
+    # Get player-team mapping and GK IDs from kloppy metadata
     player_team_map = {}
+    gk_ids = set()
     for team in tracking_dataset.metadata.teams:
         team_id = team.team_id
         for player in team.players:
             player_team_map[player.player_id] = team_id
+            pos = getattr(player, 'starting_position', None) or getattr(player, 'position', None)
+            if pos and str(pos).lower().startswith('goalkeeper'):
+                gk_ids.add(player.player_id)
+
+    print(f"  Identified {len(gk_ids)} goalkeepers: {gk_ids}")
 
     # Compute formations
-    formations = compute_all_formations(tracking_df, phases_df, player_team_map)
+    formations = compute_all_formations(tracking_df, phases_df, player_team_map, gk_ids=gk_ids)
 
     print("\n[OK] Formation computation complete")
 
@@ -693,8 +662,9 @@ def main(tracking_dataset, tracking_df, phases_df):
         print(f"  Phase type: {sample['phase_type']}")
         print(f"  Team: {sample['team_id']}")
         print(f"  Frames: {sample['num_frames']}")
+        print(f"  Players: {sample['num_players']} outfield")
         print(f"  Formation label: {sample['formation_label']}")
-        print(f"  Band counts: {sample['band_counts']}")
+        print(f"  Match cost: {sample['match_cost']}")
         print(f"  Shape graph edges: {len(sample['shape_graph_edges'])}")
         print(f"  Mean positions shape: {np.array(sample['mean_positions']).shape}")
         print(f"  Stability scores (first 3): {np.array(sample['stability_scores'])[:3]}")

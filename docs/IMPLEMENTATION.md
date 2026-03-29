@@ -153,7 +153,11 @@ Phase-Aware Soccer Analytics Dashboard - Python Pipeline
   5. Compute Delaunay adjacency graph
   6. Aggregate mean positions and adjacency per phase
 - Handles substitutions: Only uses frames where same 10 outfield players are present
-- Identifies goalkeeper as player with lowest x-coordinate per frame
+- **GK detection**: Uses kloppy metadata (authoritative) instead of broken min-x heuristic
+- **EFPI template matching** (Bekkers 2025) replaces gap-based band assignment
+- 27 formation templates (18 for 10-player, 9 for 9-player/red card teams)
+- **Red card handling**: Accepts teams with 9 outfield players (Adli red card at min 8)
+- Frontend PitchCanvas uses metadata GK IDs for shape graph exclusion
 
 **Key Adaptations from Reference Code**:
 - Stripped: `.ugp` format handling, session management, player period tracking, MAX_SWITCH_RATE filtering
@@ -161,7 +165,7 @@ Phase-Aware Soccer Analytics Dashboard - Python Pipeline
 - Adapted: Input format changed from custom to kloppy DataFrame
 
 **Test Results**:
--  Computed 90 formations (78 for one team, 12 for the other)
+-  633 formations computed (320 Team S, 313 Team B) with EFPI template matching
 -  Mean positions shape: (10, 2) for 10 outfield players
 -  Mean adjacency shape: (10, 10)
 -  Stability scores computed correctly
@@ -309,14 +313,14 @@ MIN_PHASE_DURATION = 5.0  # seconds
 **Test Coverage**:
 ```
 tests/
-   test_step1_load.py          Passing
-   test_step2_features.py      Passing (via test_pipeline_1_2_3.py)
-   test_step3_phases.py        Passing (via test_pipeline_1_2_3.py)
-   test_step4_voronoi.py       Passing
-   test_step5_formations.py    Passing
-   test_step6_pressing.py      Passing
-   test_step7_xthreat.py      � To be created
-   test_step8_export.py       � To be created
+ test_step1_load.py          Passing
+ test_step2_features.py      Passing (via test_pipeline_1_2_3.py)
+ test_step3_phases.py        Passing (via test_pipeline_1_2_3.py)
+ test_step4_voronoi.py       Passing
+ test_step5_formations.py    Passing
+ test_step6_pressing.py      Passing
+ test_step7_xthreat.py      � To be created
+ test_step8_export.py       � To be created
 ```
 
 **Integration Test**:
@@ -615,3 +619,326 @@ JavaScript port of the shape graph algorithm using `d3-delaunay`. Computes Delau
 SHAPE_GRAPH_ANGLE_THRESHOLD = 45.0   # degrees (Brandes et al. 2025)
 SHAPE_GRAPH_MIN_EDGES = 5            # fallback to Delaunay if fewer
 ```
+
+---
+
+## Frontend Refactoring: Athletic-Inspired Dashboard (2026-03-28)
+
+Restyled the entire frontend to match The Athletic's match dashboard aesthetic
+(ref: https://www.nytimes.com/athletic/5143083/2023/12/17/the-athletic-match-dashboard/).
+
+### New Component: Threat Timeline
+
+**File**: `frontend/src/components/ThreatTimeline.jsx` (NEW)
+
+- Minute-by-minute xThreat bar chart inspired by The Athletic's "game flow" visualization
+- Home team bars extend upward (red), away team bars extend downward (blue)
+- Aggregates `xthreat_gained` from phases.json into per-minute bins
+- Applies exponential moving average smoothing (alpha=0.35) for visual flow
+- Click-to-jump interaction for time navigation
+- Dashed current-time indicator
+- Team name labels on left/right, "THREAT TIMELINE" center label
+
+### Layout Restructuring
+
+**File**: `frontend/src/App.jsx`
+
+- New layout flow: Score Header -> Threat Timeline -> Phase Timelines -> Controls -> Grid (Pitch | Metrics)
+- Score header with serif typography, team color dots, match metadata
+- Section dividers (thin horizontal rules) between content areas
+- Two-column grid at 900px+ breakpoint (pitch: 3fr, metrics: 2fr)
+
+### Visual Restyling (Athletic Aesthetic)
+
+All component CSS files updated:
+
+- **index.css**: Google Fonts (Noto Sans + Noto Serif), cream background (#faf9f6), serif headings
+- **App.css**: Newspaper-style score header, subtle section dividers, cleaner controls
+- **Timeline.css**: Reduced height, uppercase labels, lighter background (#f2f0eb)
+- **MetricPanel.css**: Uppercase section labels, cream tint backgrounds
+- **MetricCard.css**: Serif value typography, subtle left border accent, no drop shadows
+- **PhaseFilter.css**: Smaller, tighter filter pills
+- **PitchCanvas.css**: Removed box shadow for flat style
+- **FormationComparisonPanel.css**: Consistent cream background (#f2f0eb)
+
+### Design System
+
+- Background: #faf9f6 (page), #f2f0eb (panels/cards)
+- Typography: Noto Serif for headings/values, Noto Sans for labels/body
+- Team colors: #C8102E (home/red), #6CABDD (away/blue)
+- Dividers: #e5e1d8
+- Labels: 11px uppercase with letter-spacing for section headers
+
+---
+
+## Score Header, Live Score & Goal Markers (2026-03-28)
+
+### Club Badges in Score Header
+
+**File**: `frontend/src/App.jsx`
+
+- Score header now displays club badges loaded from `metadata.json` (`badge` field per team)
+- Layout: Home name + badge | Score + competition | Badge + away name
+- Badge images stored in `frontend/public/assets/` as PNGs
+
+### Live Score
+
+**File**: `frontend/src/App.jsx`
+
+- `liveScore` computed via `useMemo` based on `goals` array from metadata and `currentTime`
+- Score updates dynamically as the playback scrubber advances through the match
+- Shows "0 - 0" at start, increments when `currentTime >= goal.match_seconds`
+
+### Goal Ball Icons on Threat Timeline
+
+**File**: `frontend/src/components/ThreatTimeline.jsx`
+
+- Ball icons rendered at the minute each goal was scored
+- Home team goals appear above the chart, away team goals below
+- Soccer ball drawn as white circle with pentagon pattern and dashed tick connecting to the bar area
+- Goals data passed from `App.jsx` via `goals` prop
+
+### Pipeline: Goal Extraction
+
+**File**: `pipeline/08_export_json.py`
+
+- Added `extract_goals()` function: finds SHOT events with `result == GOAL` from kloppy events
+- Computes `match_seconds` correctly across periods (adds ~2700s offset for second half)
+- Added `BADGE_MAP` for team name to badge file path mapping
+- `export_metadata()` now includes `goals` array and `badge` paths in `metadata.json`
+
+### Metadata Schema Update
+
+**File**: `frontend/public/data/J03WN1/metadata.json`
+
+- Each team object now has a `"badge"` field (e.g., `"/assets/VfL Bochum 1848.png"`)
+- New top-level `"goals"` array with objects:
+  - `team_id`, `player_id`, `player_name`, `minute`, `match_seconds`, `period`
+
+### Bug Fix: React Hooks Order
+
+**File**: `frontend/src/App.jsx`
+
+- Fixed "Rendered more hooks than during the previous render" error
+- Moved `useMemo` (liveScore) and derived state computations before early return statements
+- React requires all hooks to be called in the same order on every render; hooks after conditional returns violate this rule
+
+---
+
+## Match Stats & Lineups -- The Athletic Style (2026-03-28)
+
+### Pipeline: Match Stats Computation
+
+**File**: `pipeline/09_compute_match_stats.py` (NEW)
+
+Computes six match-level stats per team, inspired by The Athletic's match dashboard:
+
+| Stat | Description | Method |
+|---|---|---|
+| Start distance | Avg distance (m) from possession start to opponent goal | Group events into possession sequences, measure first event location |
+| Progression | Avg % of remaining distance gained per possession | Compare start vs end of each possession |
+| Circulation | Passing indirectness (1 - progressive/total distance) | Ratio of forward pass distance to total pass distance |
+| Build-ups | Possessions with 8+ passes reaching the box | Count pass sequences meeting both criteria |
+| Fast breaks | Possessions reaching box within 15s from deep | Track time from deep touch to box entry |
+| High press | Defensive actions in top 60% / 100 opponent passes | OtherBallAction + Recovery + Foul events vs opponent passes |
+
+Each stat includes a 0-5 circle rating (0.5 increments) based on calibrated ranges.
+
+Also computes per-player stats:
+- Minutes played, goals, assists
+- Progressive passes (>=10m, >=25% remaining distance gained)
+- Progressive receptions (receiver of progressive pass)
+- Defensive actions (OtherBallAction + Recovery events)
+- Touches (all on-ball events)
+- Positional xG (distance + angle model)
+- Position abbreviation from kloppy `starting_position`
+
+### Data Export
+
+Stats exported to `metadata.json` as `match_stats` and `player_stats` fields.
+
+### Frontend: MatchStats Component
+
+**File**: `frontend/src/components/MatchStats.jsx` (NEW)
+
+- Side-by-side comparison panel for both teams
+- Circle rating glyphs (5 circles per team, each empty/half/full)
+- Home circles in red (#C8102E), away in blue (#2563EB)
+- Winning team's value highlighted with colored pill border
+- Serif labels for stat names, sans-serif for values
+
+### Frontend: Lineups Component
+
+**File**: `frontend/src/components/Lineups.jsx` (NEW)
+
+- Side-by-side lineup cards (home left, away right)
+- Team header with colored bottom border
+- Columns: sub marker, position abbreviation, player name, minutes, key stats
+- Sub arrows: up triangle (sub on, team color), down triangle (sub off, gray)
+- Stat icons (SVG): goal, assist, progressive passes (arrow up), defensive actions (shield), touches (circle), xG (crosshair)
+- Team leaders highlighted: player with most progressive passes / defensive actions / touches per team
+
+### Integration
+
+**File**: `frontend/src/App.jsx`
+
+- MatchStats placed between Threat Timeline and Phase Timelines
+- Lineups placed at the bottom after the main content grid
+- Data sourced from `matchData.metadata.match_stats` and `matchData.metadata.player_stats`
+
+---
+
+## Fix: xThreat for Shots and Goals (2026-03-28)
+
+### Problem
+
+The Threat Timeline showed near-zero bars around the first goal (minute 18), despite a goal being scored. Root cause: `pipeline/07_compute_xthreat.py` only computed xThreat for events with both start AND end coordinates (pass-type events). SHOT events in DFL data lack end coordinates, so all shots -- including goals -- registered zero threat.
+
+Data evidence: 1001 out of 1093 home team phases had exactly 0.0 xThreat. The phase containing the first goal (phase 1430, 17.9min) had xt_gained=0.0000.
+
+### Fix
+
+Modified `compute_xthreat_for_event()` in `pipeline/07_compute_xthreat.py`:
+
+- **GOAL result**: Returns 0.50 (threat fully realised; significant but not overwhelming relative to max xT surface value)
+- **SHOT (non-goal)**: Returns `max(threat_surface[zone], shot_xg)` where `shot_xg` is a positional model based on distance/angle to goal
+- **All other events**: Unchanged (end_zone_threat - start_zone_threat)
+
+Added helper `_shot_xg(x, y)` for distance+angle based positional xG.
+
+### Result
+
+Phase 1430 (containing the first goal) now has xt_gained=0.4926. The Threat Timeline displays a visible spike around minute 18, properly correlated with the goal marker.
+
+---
+
+## Fix: Match Stats Attacking Direction (2026-03-28)
+
+### Problem
+
+All six match stats (start distance, progression, circulation, build-ups, fast breaks, high press) were wrong because `09_compute_match_stats.py` hardcoded attacking direction as `home=right, away=left`. In kloppy's coordinate system, the direction flips between halves:
+
+- Period 1: Home attacks LEFT (x=0), Away attacks RIGHT (x=1)
+- Period 2: Home attacks RIGHT (x=1), Away attacks LEFT (x=0)
+
+This meant all distance-to-goal, box entry, and zone calculations were wrong for half the match. Progression was -9.3% / -9.7% (should be positive). Fast breaks were inflated (7/10 vs correct 5/2).
+
+### Fix
+
+1. **Direction detection**: Added `_detect_attacking_direction(events_df, team_ids)` that auto-detects attacking direction per team per period from shot locations (average x > 0.5 = attacking right).
+
+2. **All stat functions updated** to accept a `direction_map` and look up the correct direction per event/possession period.
+
+3. **Progression**: Changed from Euclidean distance to x-axis distance (`_x_dist_to_goal`), measures to furthest forward point, requires 3+ events and 10+m starting distance.
+
+4. **Build-ups**: Lowered threshold from 8 to 5 passes (DFL data has fewer events than StatsBomb). Now checks both event start AND pass end coordinates for box entry.
+
+5. **Fast breaks**: Uses `_x_dist_to_goal >= 52.5m` to define "own half" instead of a fixed x-threshold.
+
+6. **High press**: Zone check now uses per-event period direction.
+
+### Corrected Values (J03WN1)
+
+| Stat | Old (wrong) | New (fixed) |
+|------|-------------|-------------|
+| Start distance | 57.8 / 53.7 | 62.1 / 67.5 |
+| Progression | -9.3% / -9.7% | 40.6% / 27.7% |
+| Circulation | 0.61 / 0.65 | 0.53 / 0.61 |
+| Build-ups | 1 / 1 | 1 / 0 |
+| Fast breaks | 7 / 10 | 5 / 2 |
+| High press | 43.2 / 29.3 | 30.0 / 26.4 |
+
+---
+
+## Fix: Second Half Missing from Dashboard (2026-03-29)
+
+### Problem
+The dashboard only showed the first half (~48 minutes). The Threat Timeline, phase timelines, and pitch canvas all stopped at halftime. The second half was completely absent.
+
+### Root Cause
+kloppy's tracking data uses period-relative timestamps: period 1 timestamps range 0s-2770s, and period 2 timestamps also restart from 0s-2888s. When exported to JSON without offset adjustment, period 2 frames overlapped with period 1 frames, and the frontend saw the last frame at ~48 minutes.
+
+### Fix
+1. **Pipeline (`test_full_pipeline.py`)**: After `tracking_dataset.to_df()`, compute the actual period 1 end timestamp and offset all period 2 timestamps by `p1_end + 1 second`. This ensures period 2 data starts right after period 1 ends, with no overlap or gap.
+
+2. **Export (`08_export_json.py`)**: 
+   - `downsample_tracking()` now uses `LOADED_FPS` instead of `TRACKING_FPS` to avoid double-downsampling.
+   - `export_metadata()` accepts and stores `match_duration` and `period_2_offset_secs`.
+   - `extract_goals()` uses the same period 2 offset for consistent goal timestamps.
+
+3. **Frontend (`App.jsx`)**: `matchDuration` now reads from `metadata.duration` instead of deriving from the last frame timestamp.
+
+### Result
+- Frames: 2736 (0s to 5660s, ~94 minutes including stoppage)
+- Phases: 1123 segments covering the full match
+- No timestamp overlap between periods (1s gap)
+- All 3 goals correctly placed on the Threat Timeline (min 18, 33, 86)
+- ThreatTimeline shows 1' to 93' with xThreat data for both halves
+
+*Last Updated: 2026-03-29*
+
+---
+
+## Threat Timeline Investigation
+
+### Issue Reported
+User reported that the threat timeline was incorrect and missing a goal.
+
+### Investigation Findings
+
+#### Goals Detection
+- **Match analyzed**: J03WN1 (VfL Bochum 1848 vs Bayer 04 Leverkusen)
+- **Goals found**: 3 goals, all correctly extracted from event data
+  - 18' - VfL Bochum 1848 (P. Forster)
+  - 33' - VfL Bochum 1848 (T. Asano)
+  - 85' - VfL Bochum 1848 (K. Stoger)
+- **No missing goals**: All goals are present in metadata.json and displayed on the timeline
+- **Match result**: VfL Bochum 3-0 Bayer 04 Leverkusen (verified from 21 total shots)
+
+#### xThreat Analysis
+- **Total xThreat gained**:
+  - VfL Bochum 1848: 0.826
+  - Bayer 04 Leverkusen: 0.269
+- **Issue identified**: Goal at minute 85 creates an xThreat spike of 0.5 at minute 86 (phase alignment issue)
+- **Threat distribution**: Home team has higher total threat but fewer phases with positive threat (17 vs 49)
+
+#### Component Status
+- **ThreatTimeline.jsx**:
+  - Correctly displays goal markers with soccer ball icons
+  - Uses 1-indexed minutes to match the xScale domain (minute 0 = 1st minute of play)
+  - Properly handles team colors and positioning (home goals above, away goals below)
+
+- **Goal extraction (`08_export_json.py`)**:
+  - `extract_goals()` function correctly identifies SHOT events with result='GOAL'
+  - Properly converts timestamps to match seconds accounting for period offsets
+  - Player names and team IDs correctly mapped
+
+### Resolution
+1. All goals are correctly detected and displayed
+2. No goals are missing from the data
+3. The xThreat values may need recalibration for better visual representation
+4. Minor phase-to-event alignment issue causes threat spike to appear 1 minute after goal
+
+---
+
+## xThreat Timeline Accuracy Fix (2026-03-29)
+
+### Problem
+The xThreat timeline showed incorrect threat distribution:
+1. GOAL events in dead-ball gaps were assigned to the nearest **opponent** phase (e.g., away team's defensive_block), so the xThreat went to `xthreat_conceded` instead of the scoring team's `xthreat_gained`.
+2. Phase xThreat was spread evenly across all minutes the phase spanned, diluting goal spikes when a phase covered 2+ minutes.
+
+### Root Cause
+1. Gap recovery in `07_compute_xthreat.py` and `update_all.py` searched for the nearest phase by end_time regardless of team ownership. When a HOME team goal fell in a dead-ball gap, the closest phase might be an AWAY team phase.
+2. `ThreatTimeline.jsx` divided each phase's `xthreat_gained` by the number of minutes it spanned (`perMinuteGain = xt / phaseMinutes`), spreading 0.50 goal xThreat across 2 bins.
+
+### Fix
+1. **Same-team gap recovery** (`07_compute_xthreat.py`, `update_all.py`): Unmatched events are now assigned to the nearest phase belonging to the **same team** as the event, ensuring GOALs appear as `xthreat_gained` for the scoring team.
+2. **End-minute binning** (`ThreatTimeline.jsx`): Each phase's full `xthreat_gained` is placed at its end minute (`Math.floor(phase.end / 60)`) rather than being distributed across all spanned minutes. This concentrates goal spikes into a single prominent bar.
+
+### Result
+- All 3 goals now produce clear, dominant spikes in the timeline
+- Non-goal bars remain small, showing general play flow
+- Goal football icons align with their corresponding threat bars
+
+*Last Updated: 2026-03-29*

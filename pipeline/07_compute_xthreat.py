@@ -72,7 +72,9 @@ def compute_xthreat_for_event(event, threat_surface):
     """
     Compute xThreat for a single event.
 
-    xThreat = threat(end_zone) - threat(start_zone)
+    For passes: xThreat = threat(end_zone) - threat(start_zone)
+    For shots:  xThreat = positional xG based on distance/angle to goal
+    For goals:  xThreat = 1.0 (threat fully realised)
 
     Args:
         event: Event row from events_df
@@ -81,9 +83,24 @@ def compute_xthreat_for_event(event, threat_surface):
     Returns:
         float: xThreat value, or 0.0 if coordinates unavailable
     """
-    # Get start and end zones
+    event_type = event.get('event_type', '')
+    result = event.get('result', '')
+
     start_x = event.get('coordinates_x', np.nan)
     start_y = event.get('coordinates_y', np.nan)
+
+    if event_type == 'SHOT':
+        start_col, start_row = get_zone(start_x, start_y)
+        if start_col is None:
+            return 0.0
+
+        if result == 'GOAL':
+            return 0.50
+
+        base_threat = threat_surface[start_row, start_col]
+        shot_xg = _shot_xg(start_x, start_y)
+        return max(base_threat, shot_xg)
+
     end_x = event.get('end_coordinates_x', np.nan)
     end_y = event.get('end_coordinates_y', np.nan)
 
@@ -93,16 +110,35 @@ def compute_xthreat_for_event(event, threat_surface):
     if start_col is None or end_col is None:
         return 0.0
 
-    # Compute threat delta
     start_threat = threat_surface[start_row, start_col]
     end_threat = threat_surface[end_row, end_col]
 
     return end_threat - start_threat
 
 
+def _shot_xg(x, y):
+    """Positional xG for a shot based on distance and angle to goal centre.
+    Goal centre at (1.0, 0.5) in normalised coordinates."""
+    if pd.isna(x) or pd.isna(y):
+        return 0.0
+    dx = (1.0 - x) * config.PITCH_LENGTH
+    dy = (0.5 - y) * config.PITCH_WIDTH
+    dist = np.sqrt(dx ** 2 + dy ** 2)
+    if dist < 1:
+        return 0.40
+    angle = np.degrees(np.arctan2(7.32 / 2, dist))
+    return max(0.02, min(0.50, 0.6 * (angle / 90) ** 1.3))
+
+
 def compute_xthreat_per_phase(events_df, phases_df):
     """
     Compute aggregated xThreat per phase segment.
+
+    Two-pass approach:
+      1. Exact match: assign each event to the phase covering its timestamp.
+         Each event is assigned to at most one phase.
+      2. Gap recovery: any SHOT events not matched in pass 1 are assigned
+         to the nearest preceding phase (handles dead-ball gaps after goals).
 
     Args:
         events_df: Events DataFrame from Step 1
@@ -113,48 +149,79 @@ def compute_xthreat_per_phase(events_df, phases_df):
     """
     print("Computing xThreat per phase...")
 
-    # Load pre-computed xT surface (Karun Singh, Markov model)
     threat_surface = load_threat_surface()
     print(f"  Loaded xT grid {threat_surface.shape} (range {threat_surface.min():.4f} - {threat_surface.max():.4f})")
 
-    # Compute xThreat for each phase
-    xthreat_gained = []
-    xthreat_conceded = []
+    # Pre-compute xThreat for every event once
+    events_df = events_df.copy()
+    events_df['_xt'] = events_df.apply(
+        lambda e: compute_xthreat_for_event(e, threat_surface), axis=1
+    )
 
-    for idx, phase_row in tqdm(phases_df.iterrows(), total=len(phases_df), desc="  Computing xThreat"):
-        # Get events during this phase
+    # Pass 1: exact match (each event to at most one phase)
+    xthreat_gained = np.zeros(len(phases_df))
+    xthreat_conceded = np.zeros(len(phases_df))
+    assigned_event_indices = set()
+
+    for i, (idx, phase_row) in enumerate(
+        tqdm(phases_df.iterrows(), total=len(phases_df), desc="  Computing xThreat")
+    ):
         phase_events = events_df[
             (events_df['timestamp'] >= phase_row['start_time']) &
-            (events_df['timestamp'] <= phase_row['end_time'])
-        ].copy()
+            (events_df['timestamp'] <= phase_row['end_time']) &
+            (~events_df.index.isin(assigned_event_indices))
+        ]
 
         if len(phase_events) == 0:
-            xthreat_gained.append(0.0)
-            xthreat_conceded.append(0.0)
             continue
 
-        # Compute xThreat for each event
-        phase_events['xthreat'] = phase_events.apply(
-            lambda e: compute_xthreat_for_event(e, threat_surface), axis=1
-        )
+        assigned_event_indices.update(phase_events.index.tolist())
 
-        # Aggregate by team
-        team_xthreat = phase_events.groupby('team_id')['xthreat'].sum()
+        team_xthreat = phase_events.groupby('team_id')['_xt'].sum()
+        xthreat_gained[i] = team_xthreat.get(phase_row['team_id'], 0.0)
 
-        # Gained = threat created by this team
-        gained = team_xthreat.get(phase_row['team_id'], 0.0)
-
-        # Conceded = threat created by opponent
         opponent_teams = [t for t in team_xthreat.index if t != phase_row['team_id']]
-        conceded = sum(team_xthreat.get(t, 0.0) for t in opponent_teams)
+        xthreat_conceded[i] = sum(team_xthreat.get(t, 0.0) for t in opponent_teams)
 
-        xthreat_gained.append(gained)
-        xthreat_conceded.append(conceded)
-
-    # Add to phases_df
     phases_df_with_xthreat = phases_df.copy()
     phases_df_with_xthreat['xthreat_gained'] = xthreat_gained
     phases_df_with_xthreat['xthreat_conceded'] = xthreat_conceded
+
+    # Pass 2: assign unmatched events with significant xThreat to nearest phase
+    unmatched = events_df[
+        (~events_df.index.isin(assigned_event_indices)) &
+        (events_df['_xt'].abs() > 0.01)
+    ]
+
+    if len(unmatched) > 0:
+        print(f"  Found {len(unmatched)} unmatched events with |xT| > 0.01")
+        for evt_idx, evt in unmatched.iterrows():
+            xt = evt['_xt']
+            evt_time = evt['timestamp']
+            evt_team = evt['team_id']
+
+            # Find nearest phase belonging to the SAME team as the event
+            same_team = phases_df_with_xthreat[
+                phases_df_with_xthreat['team_id'] == evt_team
+            ]
+            if len(same_team) == 0:
+                continue
+
+            diffs = (same_team['end_time'] - evt_time).abs()
+            closest_idx = diffs.idxmin()
+            closest_phase = phases_df_with_xthreat.loc[closest_idx]
+            gap = abs((evt_time - closest_phase['end_time']).total_seconds())
+
+            if gap > 15:
+                continue
+
+            phases_df_with_xthreat.loc[closest_idx, 'xthreat_gained'] += xt
+
+            result = evt.get('result', '')
+            event_type = evt.get('event_type', '')
+            print(f"    Assigned {event_type}/{result} xT={xt:.4f} at "
+                  f"t={evt_time.total_seconds():.1f}s -> phase "
+                  f"{closest_phase['phase_id']} (team={evt_team}, gap={gap:.1f}s)")
 
     print(f"  Computed xThreat for {len(phases_df)} phases")
 

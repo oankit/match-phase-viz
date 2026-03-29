@@ -1,7 +1,7 @@
 import MetricCard from './MetricCard'
 import './MetricPanel.css'
 
-const MetricPanel = ({ phases, currentPhase, formations, teamNameMap = {} }) => {
+const MetricPanel = ({ phases, currentPhase, teamNameMap = {} }) => {
   // Calculate aggregate metrics for visible phases
   const calculateMetrics = () => {
     if (!phases || phases.length === 0) {
@@ -31,18 +31,6 @@ const MetricPanel = ({ phases, currentPhase, formations, teamNameMap = {} }) => 
     const totalXThreatConceded = phases.reduce((sum, p) =>
       sum + (p.xthreat_conceded || 0), 0)
 
-    // Calculate formation stability if available
-    let avgFormationStability = 0
-    if (formations && formations.length > 0) {
-      const allStabilities = formations
-        .flatMap(f => f.stability_scores || [])
-        .filter(s => s !== undefined)
-
-      if (allStabilities.length > 0) {
-        avgFormationStability = allStabilities.reduce((a, b) => a + b, 0) / allStabilities.length
-      }
-    }
-
     // Shape metrics (Pracxa et al. 2022)
     const avgTeamLength = phases.reduce((sum, p) =>
       sum + (p.team_length || 0), 0) / phases.length * 105 // Convert to meters
@@ -65,8 +53,7 @@ const MetricPanel = ({ phases, currentPhase, formations, teamNameMap = {} }) => 
       avgLPWRatio: avgLPWRatio.toFixed(2),
       avgStretchingIndex: avgStretchingIndex.toFixed(1),
       totalXThreatGained: totalXThreatGained.toFixed(3),
-      totalXThreatConceded: totalXThreatConceded.toFixed(3),
-      avgFormationStability: (avgFormationStability * 100).toFixed(0)
+      totalXThreatConceded: totalXThreatConceded.toFixed(3)
     }
   }
 
@@ -160,13 +147,6 @@ const MetricPanel = ({ phases, currentPhase, formations, teamNameMap = {} }) => 
           showTrend={parseFloat(metrics.totalXThreatConceded) < 0}
         />
 
-        <MetricCard
-          title="Formation Stability"
-          value={metrics.avgFormationStability}
-          unit="%"
-          description="Role assignment consistency"
-          color="#8B5CF6"
-        />
       </div>
 
       <div className="phase-summary">

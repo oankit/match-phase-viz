@@ -31,12 +31,11 @@ def downsample_tracking(tracking_df, target_fps=4):
     Returns:
         pd.DataFrame: Downsampled tracking DataFrame
     """
-    source_fps = config.TRACKING_FPS
-    downsample_factor = source_fps // target_fps
+    source_fps = config.LOADED_FPS
+    downsample_factor = max(1, source_fps // target_fps)
 
     print(f"  Downsampling {source_fps}Hz -> {target_fps}Hz (every {downsample_factor} frames)")
 
-    # Take every Nth frame
     downsampled = tracking_df.iloc[::downsample_factor].copy()
 
     print(f"  Downsampled: {len(tracking_df)} -> {len(downsampled)} frames")
@@ -269,14 +268,78 @@ def export_heatmaps(heatmaps, output_dir):
     return str(heatmaps_path)
 
 
-def export_metadata(tracking_dataset, match_id, output_dir):
+BADGE_MAP = {
+    'VfL Bochum 1848': '/assets/VfL Bochum 1848.png',
+    'Bayer 04 Leverkusen': '/assets/Bayer_04_Leverkusen.png',
+    '1. FC Koln': '/assets/FC Koln.png',
+    'FC Bayern Munchen': '/assets/Bayern Munich.png',
+    'Fortuna Dusseldorf': '/assets/Fortuna Dusseldorf.png',
+    '1. FC Nurnberg': '/assets/FC Nurnberg.png',
+    'SSV Jahn Regensburg': None,
+    'FC St. Pauli': '/assets/FC St. Pauli.png',
+    'F.C. Hansa Rostock': '/assets/FC Hansa Rostock.png',
+    '1. FC Kaiserslautern': '/assets/FC Kaiserslautern.png',
+}
+
+
+def extract_goals(events_df, tracking_dataset, period_2_offset_secs=None):
     """
-    Export match metadata to JSON.
+    Extract goal events from the events DataFrame.
+
+    Args:
+        events_df: Events DataFrame
+        tracking_dataset: Kloppy TrackingDataset object
+        period_2_offset_secs: Offset in seconds for period 2 timestamps
+            (should match the offset applied to tracking data)
+
+    Returns:
+        list: Goal dicts with team_id, player_name, minute, match_seconds, period
+    """
+    if events_df is None or len(events_df) == 0:
+        return []
+
+    shots = events_df[
+        (events_df['event_type'] == 'SHOT') & (events_df['result'] == 'GOAL')
+    ]
+
+    player_name_map = {}
+    for team in tracking_dataset.metadata.teams:
+        for player in team.players:
+            name = player.name if player.name else player.player_id
+            player_name_map[player.player_id] = name
+
+    if period_2_offset_secs is None:
+        period_2_offset_secs = 45 * 60
+
+    goal_list = []
+    for _, g in shots.iterrows():
+        ts = g['timestamp']
+        period = g['period_id']
+        match_seconds = (period_2_offset_secs + ts.total_seconds()) if period == 2 else ts.total_seconds()
+
+        goal_list.append({
+            'team_id': g['team_id'],
+            'player_id': g['player_id'],
+            'player_name': player_name_map.get(g['player_id'], g['player_id']),
+            'minute': int(match_seconds // 60),
+            'match_seconds': round(match_seconds, 1),
+            'period': period,
+        })
+
+    return goal_list
+
+
+def export_metadata(tracking_dataset, match_id, output_dir, events_df=None, match_duration=None,
+                    period_2_offset_secs=None):
+    """
+    Export match metadata to JSON, including goals and badge paths.
 
     Args:
         tracking_dataset: Kloppy TrackingDataset object
         match_id: Match ID string
         output_dir: Output directory path
+        events_df: Events DataFrame (for goal extraction)
+        match_duration: Total match duration in seconds (if None, defaults to 90*60)
 
     Returns:
         str: Path to exported metadata.json
@@ -285,16 +348,26 @@ def export_metadata(tracking_dataset, match_id, output_dir):
 
     teams = tracking_dataset.metadata.teams
 
+    goals = extract_goals(events_df, tracking_dataset, period_2_offset_secs) if events_df is not None else []
+    if goals:
+        print(f"  Found {len(goals)} goals")
+
+    if match_duration is None:
+        match_duration = 90 * 60
+
     metadata = {
         'match_id': match_id,
+        'duration': match_duration,
         'teams': [
             {
                 'id': team.team_id,
                 'name': team.name if team.name else team.team_id,
+                'badge': BADGE_MAP.get(team.name, None),
                 'players': [
                     {
                         'id': player.player_id,
                         'name': player.name if player.name else player.player_id,
+                        'position': str(getattr(player, 'starting_position', None) or getattr(player, 'position', None) or ''),
                     }
                     for player in team.players
                 ]
@@ -305,11 +378,12 @@ def export_metadata(tracking_dataset, match_id, output_dir):
             'length': config.PITCH_LENGTH,
             'width': config.PITCH_WIDTH,
         },
+        'goals': goals,
     }
 
     metadata_path = output_dir / 'metadata.json'
-    with open(metadata_path, 'w') as f:
-        json.dump(metadata, f, indent=2)
+    with open(metadata_path, 'w', encoding='utf-8') as f:
+        json.dump(metadata, f, indent=2, ensure_ascii=True)
 
     print(f"  Exported metadata to {metadata_path}")
 
@@ -317,7 +391,8 @@ def export_metadata(tracking_dataset, match_id, output_dir):
 
 
 def main(match_id, tracking_dataset, tracking_df, phases_df, formations, voronoi_data, heatmaps,
-         target_fps=None, output_base_dir=None):
+         target_fps=None, output_base_dir=None, events_df=None, match_duration=None,
+         period_2_offset_secs=None):
     """
     Main entry point for Step 8.
 
@@ -331,6 +406,7 @@ def main(match_id, tracking_dataset, tracking_df, phases_df, formations, voronoi
         heatmaps: List of heatmap dicts from Step 6
         target_fps: Target frame rate for downsampling (if None, uses config.EXPORT_TARGET_FPS)
         output_base_dir: Base output directory
+        events_df: Events DataFrame (for goal extraction in metadata)
 
     Returns:
         dict: Paths to exported files
@@ -381,7 +457,8 @@ def main(match_id, tracking_dataset, tracking_df, phases_df, formations, voronoi
 
     # Export all components
     exported_files = {
-        'metadata': export_metadata(tracking_dataset, match_id, output_dir),
+        'metadata': export_metadata(tracking_dataset, match_id, output_dir, events_df=events_df,
+                                         match_duration=match_duration, period_2_offset_secs=period_2_offset_secs),
         'frames': export_frames(tracking_df_downsampled, player_team_map, output_dir),
         'phases': export_phases(phases_df, output_dir),
         'formations': export_formations(formations, output_dir),

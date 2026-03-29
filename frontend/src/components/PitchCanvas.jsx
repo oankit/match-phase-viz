@@ -1,18 +1,16 @@
 import { useRef, useEffect } from 'react'
 import * as d3 from 'd3'
-import { drawFormationGlyph } from '../utils/drawFormation'
 import { computeShapeGraph } from '../utils/shapeGraph'
 import './PitchCanvas.css'
 
 const PitchCanvas = ({
   frame,
   voronoi,
-  formations,
   selectedPhase,
-  overlayMode = 'shape_graph'
+  overlayMode = 'shape_graph',
+  metadata
 }) => {
   const canvasRef = useRef(null)
-  const svgRef = useRef(null)
 
   // Team colors
   const teamColors = {
@@ -22,7 +20,6 @@ const PitchCanvas = ({
 
   useEffect(() => {
     const canvas = canvasRef.current
-    const svg = d3.select(svgRef.current)
 
     if (!canvas || !frame) return
 
@@ -114,6 +111,18 @@ const PitchCanvas = ({
 
     // Draw live shape graph edges per team (before players so edges are behind dots)
     if (overlayMode === 'shape_graph' && frame.players) {
+      // Build GK ID set from metadata (authoritative source)
+      const gkIds = new Set()
+      if (metadata?.teams) {
+        metadata.teams.forEach(team => {
+          team.players?.forEach(p => {
+            if (p.position && p.position.toLowerCase().startsWith('goalkeeper')) {
+              gkIds.add(p.id)
+            }
+          })
+        })
+      }
+
       // Group players by team
       const teamGroups = {}
       frame.players.forEach(player => {
@@ -124,16 +133,20 @@ const PitchCanvas = ({
       Object.entries(teamGroups).forEach(([teamId, players]) => {
         if (players.length < 4) return
 
-        // Exclude goalkeeper: player with minimum x (closest to own goal)
-        let gkIdx = 0
-        let minX = players[0].x
-        for (let i = 1; i < players.length; i++) {
-          if (players[i].x < minX) {
-            minX = players[i].x
-            gkIdx = i
-          }
+        // Exclude goalkeeper using metadata position data
+        let outfield
+        if (gkIds.size > 0) {
+          outfield = players.filter(p => !gkIds.has(p.id))
+        } else {
+          // Fallback: exclude player most isolated from team centroid on x-axis
+          const meanX = players.reduce((s, p) => s + p.x, 0) / players.length
+          let maxDist = 0, gkIdx = 0
+          players.forEach((p, i) => {
+            const dist = Math.abs(p.x - meanX)
+            if (dist > maxDist) { maxDist = dist; gkIdx = i }
+          })
+          outfield = players.filter((_, i) => i !== gkIdx)
         }
-        const outfield = players.filter((_, i) => i !== gkIdx)
 
         if (outfield.length < 4) return
 
@@ -198,22 +211,7 @@ const PitchCanvas = ({
       ctx.stroke()
     }
 
-    // Clear SVG for formations
-    svg.selectAll('*').remove()
-
-    // Draw formation overlay if available (shape graph + band lines)
-    if (formations && selectedPhase) {
-      const phaseFormations = formations.filter(f => f.phase_id === selectedPhase.id)
-
-      phaseFormations.forEach(formation => {
-        drawFormationGlyph(svg, formation, xScale, yScale,
-          teamColors[formation.team_id] || '#999',
-          { showShapeGraph: true, showBandLines: true, showLabel: true, opacity: 0.6 }
-        )
-      })
-    }
-
-  }, [frame, voronoi, formations, selectedPhase, overlayMode])
+  }, [frame, voronoi, selectedPhase, overlayMode, metadata])
 
   const drawPitchMarkings = (ctx, width, height) => {
     ctx.strokeStyle = 'white'
@@ -270,12 +268,6 @@ const PitchCanvas = ({
         width={800}
         height={520}
         className="pitch-canvas"
-      />
-      <svg
-        ref={svgRef}
-        className="formation-svg"
-        width={800}
-        height={520}
       />
     </div>
   )

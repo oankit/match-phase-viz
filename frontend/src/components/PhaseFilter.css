@@ -1,35 +1,37 @@
 .phase-filter-container {
-  background: white;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 0;
 }
 
 .phase-filter-container h3 {
-  margin-bottom: 15px;
-  color: #333;
+  margin: 0 0 6px 0;
+  font-size: 11px;
+  font-family: 'Noto Sans', sans-serif;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #888;
 }
 
 .phase-filter-buttons {
   display: flex;
-  gap: 10px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .phase-filter-btn {
-  padding: 8px 16px;
-  border: 2px solid;
-  border-radius: 4px;
-  font-size: 14px;
+  padding: 4px 10px;
+  border: 1.5px solid;
+  border-radius: 3px;
+  font-size: 11px;
   font-weight: 500;
+  font-family: 'Noto Sans', sans-serif;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s;
   background: transparent;
 }
 
 .phase-filter-btn:hover {
-  opacity: 0.8;
+  opacity: 0.85;
 }
 
 .phase-filter-btn.active {

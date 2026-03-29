@@ -1,0 +1,33 @@
+.threat-timeline {
+  background: #f2f0eb;
+  border-radius: 4px;
+  padding: 16px 12px 8px;
+  margin-bottom: 16px;
+}
+
+.threat-timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding: 0 8px;
+}
+
+.threat-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #666;
+}
+
+.threat-team-label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.threat-timeline-svg {
+  width: 100%;
+  display: block;
+}

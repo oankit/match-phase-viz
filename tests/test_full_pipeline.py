@@ -7,6 +7,7 @@ sys.path.insert(0, '../pipeline')
 
 import importlib
 from pathlib import Path
+import pandas as pd
 
 # Import configuration
 import config
@@ -48,7 +49,25 @@ event_dataset, tracking_dataset, events_df, tracking_df_sample = step1.load_matc
 )
 
 tracking_df = tracking_dataset.to_df()
-print(f"[OK] Loaded: {len(events_df)} events, {len(tracking_df)} tracking frames\n")
+
+# Offset period 2 timestamps so they continue from period 1 (not restart at 0)
+period_1_mask = tracking_df['period_id'] == 1
+period_2_mask = tracking_df['period_id'] == 2
+p1_end = tracking_df.loc[period_1_mask, 'timestamp'].max()
+PERIOD_2_OFFSET = p1_end + pd.Timedelta(seconds=1.0)
+p2_count = period_2_mask.sum()
+tracking_df.loc[period_2_mask, 'timestamp'] = (
+    tracking_df.loc[period_2_mask, 'timestamp'] + PERIOD_2_OFFSET
+)
+evt_p2_mask = events_df['period_id'] == 2
+events_df.loc[evt_p2_mask, 'timestamp'] = (
+    events_df.loc[evt_p2_mask, 'timestamp'] + PERIOD_2_OFFSET
+)
+print(f"[OK] Loaded: {len(events_df)} events, {len(tracking_df)} tracking frames")
+print(f"     Period 1 ends at {p1_end.total_seconds():.1f}s ({p1_end.total_seconds()/60:.1f} min)")
+print(f"     Period 2 offset: +{PERIOD_2_OFFSET.total_seconds():.1f}s (applied to tracking + events)")
+ts_max = tracking_df['timestamp'].max().total_seconds()
+print(f"     Match time range: 0s - {ts_max:.1f}s ({ts_max/60:.1f} min)\n")
 
 # ============================================================================
 # STEP 2: Compute Features
@@ -110,6 +129,8 @@ print(f"[OK] Computed xThreat for {len(phases_df_with_xthreat)} phases\n")
 print("="*80)
 print("[STEP 8] Exporting to JSON")
 print("="*80)
+match_duration = tracking_df['timestamp'].max().total_seconds()
+p2_offset_secs = PERIOD_2_OFFSET.total_seconds()
 exported_files = step8.main(
     match_id=match_id,
     tracking_dataset=tracking_dataset,
@@ -118,8 +139,10 @@ exported_files = step8.main(
     formations=formations,
     voronoi_data=voronoi_data,
     heatmaps=heatmaps,
-    target_fps=4
-    # output_base_dir not specified - will use config.OUTPUT_DIR (frontend) by default
+    target_fps=4,
+    match_duration=match_duration,
+    events_df=events_df,
+    period_2_offset_secs=p2_offset_secs,
 )
 
 # ============================================================================
