@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import ThreatTimeline from './components/ThreatTimeline'
+import CumulativeXG from './components/CumulativeXG'
 import Timeline from './components/Timeline'
 import PitchCanvas from './components/PitchCanvas'
 import MetricPanel from './components/MetricPanel'
@@ -187,22 +188,20 @@ function App() {
       {activeTab === 1 && (
         <div className="tab-content">
 
-          {/* Threat Timeline */}
-          <Collapsible title="Threat Timeline" defaultOpen={true}>
-            <div className="dash-card" style={{ marginTop: 8 }}>
-              <ThreatTimeline
-                phases={matchData.phases}
-                metadata={matchData.metadata}
-                goals={goals}
-                currentTime={currentTime}
-                duration={matchDuration}
-                onTimeChange={handleTimeChange}
-              />
-            </div>
-          </Collapsible>
-
           {/* Phase Detection */}
           <Collapsible title="Phase Detection" defaultOpen={true}>
+            <div className="controls-row" style={{ marginTop: 8 }}>
+              <PhaseFilter phaseFilter={phaseFilter} setPhaseFilter={setPhaseFilter} />
+              <div className="team-selector">
+                <h3>Team View</h3>
+                <div className="team-selector-buttons">
+                  <button className={`team-btn ${!selectedTeam ? 'active' : ''}`} onClick={() => setSelectedTeam(null)}>Both</button>
+                  {teams.map(t => (
+                    <button key={t.id} className={`team-btn ${selectedTeam === t.id ? 'active' : ''}`} onClick={() => setSelectedTeam(t.id)}>{t.name}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
             <div className="dash-card" style={{ marginTop: 8 }}>
               {(!selectedTeam ? teamIds : [selectedTeam]).map(teamId => (
                 <Timeline
@@ -218,20 +217,6 @@ function App() {
               ))}
             </div>
           </Collapsible>
-
-          {/* Controls */}
-          <div className="controls-row">
-            <PhaseFilter phaseFilter={phaseFilter} setPhaseFilter={setPhaseFilter} />
-            <div className="team-selector">
-              <h3>Team View</h3>
-              <div className="team-selector-buttons">
-                <button className={`team-btn ${!selectedTeam ? 'active' : ''}`} onClick={() => setSelectedTeam(null)}>Both</button>
-                {teams.map(t => (
-                  <button key={t.id} className={`team-btn ${selectedTeam === t.id ? 'active' : ''}`} onClick={() => setSelectedTeam(t.id)}>{t.name}</button>
-                ))}
-              </div>
-            </div>
-          </div>
 
           {/* Pitch View - full width, centered */}
           <div className="dash-card pitch-card">
@@ -292,6 +277,33 @@ function App() {
               </span>
             </div>
           </div>
+
+          {/* Threat Timeline */}
+          <Collapsible title="Threat Timeline" defaultOpen={true}>
+            <div className="dash-card" style={{ marginTop: 8 }}>
+              <ThreatTimeline
+                phases={matchData.phases}
+                metadata={matchData.metadata}
+                goals={goals}
+                currentTime={currentTime}
+                duration={matchDuration}
+                onTimeChange={handleTimeChange}
+              />
+            </div>
+          </Collapsible>
+
+          {/* Cumulative xG */}
+          <Collapsible title="Cumulative xG" defaultOpen={true}>
+            <div className="dash-card" style={{ marginTop: 8 }}>
+              <CumulativeXG
+                shotXg={matchData.shotXg}
+                metadata={matchData.metadata}
+                currentTime={currentTime}
+                duration={matchDuration}
+                onTimeChange={handleTimeChange}
+              />
+            </div>
+          </Collapsible>
 
           {/* Match Metrics - collapsible */}
           <Collapsible title="Match Metrics" defaultOpen={false}>

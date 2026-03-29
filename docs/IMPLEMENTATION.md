@@ -1246,4 +1246,34 @@ Wrapped the Threat Timeline section in the existing `Collapsible` component (sam
 ### Files Changed
 - `frontend/src/App.jsx`: Replaced static `dash-card` wrapper with `Collapsible` component
 
+---
+
+## Cumulative xG Chart
+
+### Problem
+No shot-level expected goals visualization existed. The xThreat data in phases shows threat per phase segment but doesn't show individual shot quality or cumulative chance creation over time.
+
+### Solution
+Built a cumulative xG step chart inspired by the [football-match-intelligence](https://github.com/DataKnight1/football-match-intelligence) reference.
+
+**Pipeline**: Extracted shot events from kloppy event data, computed positional xG per shot using the existing `_positional_xg()` model, and exported as `shot_xg.json` with timestamp, team, player, xG value, and goal flag.
+
+**Frontend**: D3.js step chart showing:
+- Cumulative xG step lines per team (color-coded)
+- Semi-transparent area fills
+- Goal markers (outlined circles) and shot markers (small dots)
+- Half-time divider
+- Final xG values at line endpoints
+- Current time indicator (synced with playback)
+- Click-to-seek on the timeline
+- Legend for goal vs non-goal markers
+
+### Files Changed
+- `tests/export_shot_xg.py`: New script to extract shot xG data from event data
+- `frontend/public/data/J03WN1/shot_xg.json`: Exported shot xG data
+- `frontend/src/hooks/useMatchData.js`: Added `shotXg` data loading
+- `frontend/src/components/CumulativeXG.jsx`: New D3 cumulative xG chart component
+- `frontend/src/components/CumulativeXG.css`: Chart styles
+- `frontend/src/App.jsx`: Added CumulativeXG import and collapsible section in Analysis tab
+
 *Last Updated: 2026-03-29*

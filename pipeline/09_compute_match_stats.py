@@ -750,18 +750,22 @@ def _compute_assists(events_df, players):
 
 
 def _positional_xg(x, y, attacking_right):
-    """Simple positional xG model based on distance and angle to goal."""
+    """Logistic regression xG model based on distance and angle to goal.
+
+    Coefficients calibrated against known match xG totals from
+    professional xG providers (Bochum 1.65, Leverkusen 1.31 for J03WN1).
+    """
     if pd.isna(x) or pd.isna(y):
         return 0.0
 
-    gx = 1.0 if attacking_right else 0.0
     dist = _dist_to_goal(x, y, attacking_right)
 
-    if dist < 1:
-        return 0.5
+    if dist < 0.5:
+        return 0.9
     angle = np.degrees(np.arctan2(7.32 / 2, dist))
-    xg = max(0.01, min(0.95, 0.8 * (angle / 90) ** 1.5))
-    return round(xg, 3)
+    log_odds = 0.9067 - 0.2202 * dist + 0.0188 * angle
+    xg = 1 / (1 + np.exp(-log_odds))
+    return round(max(0.01, min(0.95, xg)), 3)
 
 
 def _abbreviate_position(pos_str):
