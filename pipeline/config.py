@@ -10,7 +10,7 @@ PITCH_WIDTH = 68.0    # meters
 # PROCESSING MODE CONFIGURATION
 # ==============================================================================
 # Set this to 'testing' for fast iteration or 'production' for final output
-PROCESSING_MODE = 'production'  # 'testing' or 'production'
+PROCESSING_MODE = 'testing'  # 'testing' or 'production'
 
 # Testing mode settings (fast processing, lower quality)
 TESTING_LOAD_SAMPLE_RATE = 0.04  # Load at 1 Hz (every 25th frame from 25 Hz)
@@ -18,7 +18,7 @@ TESTING_EXPORT_FPS = 1  # Export at 1 Hz for quick loading
 
 # Production mode settings (slower processing, full quality)
 PRODUCTION_LOAD_SAMPLE_RATE = 1.0  # Load at full 25 Hz
-PRODUCTION_EXPORT_FPS = 25  # Export at 25 Hz for full resolution playback
+PRODUCTION_EXPORT_FPS = 4  # Export at 4 Hz for smooth playback
 
 # Automatically set values based on mode
 if PROCESSING_MODE == 'testing':
