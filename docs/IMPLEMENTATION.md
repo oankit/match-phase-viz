@@ -1729,3 +1729,37 @@ For match J03WN1:
 - Forward-pass filter uses `attacking_direction` from `eventXt` JSON
 - Looks up `dirMap[teamId_periodId]` to determine if team attacks right
 - Forward = `end_x > start_x` when attacking right, `end_x < start_x` when attacking left
+
+---
+
+## VGTC Conference Paper (2026-04-06)
+
+### Paper Written
+
+**File**: `paper/paper.tex`
+
+Four-page VGTC conference paper covering all required sections:
+
+1. **Abstract** (~150 words): Summarizes the two-path phase classification, coordinated multi-view frontend, and static deployment architecture.
+2. **Introduction**: Motivates phase awareness gap in existing soccer analytics tools; states three contributions.
+3. **Background & Related Work**: Covers soccer visualization systems (SoccerStories, Janetzko, Stein), tactical phase detection (Bekkers & Sahasrabudhe, Bauer & Anzer), formation analysis (Bialkowski RoleRep, Brandes shape graphs, Singh xT).
+4. **Design**: Data abstraction (6 JSON files), task abstraction (5 tasks: Discover, Compare, Locate, Browse, Correlate), audience/usage scenario, visual encoding design (phase timeline, pitch canvas, momentum chart, metric panels, scrubber), interaction design (Shneiderman's mantra).
+5. **Implementation**: Pipeline (9 steps) and frontend (React 18, D3.js 7, Canvas API, static JSON).
+6. **Proposed Evaluation**: Expert review, comparative task study, phase classification validation.
+7. **Discussion & Future Work**: Lessons learned, limitations, five future directions.
+8. **Conclusion**: Summary of contributions and practical utility.
+9. **Bibliography**: 15 references.
+
+### Template Setup
+
+- Downloaded VGTC LaTeX template from `github.com/ieeevgtc/vgtc_conference_latex`
+- `vgtc.cls` and `abbrv-doi.bst` copied to `paper/` directory
+- `figures/` directory created for screenshots
+- Paper uses `\documentclass{vgtc}` (conference style, not journal)
+
+### TODO for Submission
+- [ ] Add teaser figure screenshot (`paper/figures/teaser.png`)
+- [ ] Add in-body figures (pitch canvas, timeline, momentum chart screenshots)
+- [ ] Replace placeholder author email
+- [ ] Compile with pdflatex (requires LaTeX installation)
+- [ ] Verify page count (4 pages + 1 page references)
