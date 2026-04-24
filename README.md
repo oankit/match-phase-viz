@@ -4,6 +4,25 @@ CS 889 (Information Visualization) final project -- University of Waterloo, W26.
 
 A coordinated multi-view dashboard that integrates possession-aware tactical phase classification with spatial overlays (pitch control, shape graphs), team formation comparison, and expected threat (xT) metrics. Built on the DFL IDSSE Bundesliga dataset.
 
+## Demo
+
+<video src="docs/media/demo.mp4" controls width="720"></video>
+
+[Watch the demo (MP4)](docs/media/demo.mp4) -- direct link if the player above does not render in your viewer.
+
+## Features at a glance
+
+<table>
+  <tr>
+    <td><img src="docs/media/pitch-control.png" width="360"/><br/><sub><b>Pitch control</b> -- voronoi-style defensive grid inside the convex hull of outfield players.</sub></td>
+    <td><img src="docs/media/shape-graph.png" width="360"/><br/><sub><b>Shape graph</b> -- Delaunay adjacency with role-stable edges pruned by angular tolerance.</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/media/xg-shot.png" width="360"/><br/><sub><b>xG on shots</b> -- per-shot expected goal value surfaced at the shot frame.</sub></td>
+    <td><img src="docs/media/xt-arrow.png" width="360"/><br/><sub><b>xThreat arrows</b> -- successful passes/carries annotated with Karun Singh xT deltas.</sub></td>
+  </tr>
+</table>
+
 ---
 
 ## Repository layout
@@ -174,7 +193,7 @@ npm run preview
 | `CumulativeXG` | Step chart of cumulative xG per team |
 | `FormationComparisonPanel` | In-possession vs out-of-possession formation glyphs |
 | `MatchStats` | 6 Athletic-style circle-rating stats per team |
-| `Lineups` | Player cards with position, minutes, key stats |
+| `Lineups` | Player cards with position, minutes, key stats <img src="docs/media/player-chip.png" height="28"/> |
 | `PlayerXT` | Top xT contributors bar chart |
 | `PlayerXG` | Top xG contributors bar chart |
 | `MetricPanel` | Per-phase metric cards |
@@ -220,6 +239,13 @@ pdflatex paper
 ```
 
 Or upload `paper.tex` and `references.bib` to Overleaf.
+
+---
+
+## Resources
+
+- [Final project report (PDF)](docs/final-report.pdf) -- the writeup submitted for CS 889.
+- [Demo video](docs/media/demo.mp4) -- direct link for sharing.
 
 ---
 
