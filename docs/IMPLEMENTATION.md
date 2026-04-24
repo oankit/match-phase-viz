@@ -1729,3 +1729,28 @@ For match J03WN1:
 - Forward-pass filter uses `attacking_direction` from `eventXt` JSON
 - Looks up `dirMap[teamId_periodId]` to determine if team attacks right
 - Forward = `end_x > start_x` when attacking right, `end_x < start_x` when attacking left
+
+---
+
+## README Media Additions (2026-04-24)
+
+Added visual media to the top-level `README.md` so the project reads as a showcase, not just docs.
+
+**New assets committed to the repo**:
+- `docs/media/demo.mp4` (~45 MB) -- embedded demo video (copied from `Project/Video.mp4`)
+- `docs/media/pitch-control.png` -- voronoi defensive-grid screenshot
+- `docs/media/shape-graph.png` -- full-pitch Delaunay shape graph
+- `docs/media/xg-shot.png` -- zoomed GOAL 0.49 xG shot scene
+- `docs/media/xt-arrow.png` -- shape graph with xT 0.09 arrow overlay
+- `docs/media/player-chip.png` -- single-player chip glyph used inline in components table
+- `docs/final-report.pdf` -- CS 889 final report (~1.5 MB)
+
+**README.md sections added**:
+1. `## Demo` block with inline `<video>` tag and fallback MP4 link, placed immediately after the intro paragraph.
+2. `## Features at a glance` 2x2 HTML table of feature screenshots with captions.
+3. `## Resources` section between "Paper" and "Troubleshooting", linking the PDF and demo MP4.
+4. Inline thumbnail of `player-chip.png` added to the `Lineups` row of the Frontend components table.
+
+**Notes / constraints**:
+- Larger `PhaseViz.mp4` (~50 MB) intentionally excluded to stay comfortably under GitHub's 50 MB warning threshold; only `Video.mp4` is embedded.
+- pptx slides (~36 MB) not linked from README by user decision; PDF report is the canonical writeup.
