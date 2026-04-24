@@ -4,11 +4,9 @@ CS 889 (Information Visualization) final project -- University of Waterloo, W26.
 
 A coordinated multi-view dashboard that integrates possession-aware tactical phase classification with spatial overlays (pitch control, shape graphs), team formation comparison, and expected threat (xT) metrics. Built on the DFL IDSSE Bundesliga dataset.
 
-## Demo
+![PhaseViz dashboard](docs/media/hero.png)
 
-<video src="docs/media/demo.mp4" controls width="720"></video>
-
-[Watch the demo (MP4)](docs/media/demo.mp4) -- direct link if the player above does not render in your viewer.
+[Watch the demo video (MP4, ~43 MB)](docs/media/demo.mp4)
 
 ## Features at a glance
 
@@ -20,6 +18,13 @@ A coordinated multi-view dashboard that integrates possession-aware tactical pha
   <tr>
     <td><img src="docs/media/xg-shot.png" width="360"/><br/><sub><b>xG on shots</b> -- per-shot expected goal value surfaced at the shot frame.</sub></td>
     <td><img src="docs/media/xt-arrow.png" width="360"/><br/><sub><b>xThreat arrows</b> -- successful passes/carries annotated with Karun Singh xT deltas.</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/media/formation-lines.png" width="360"/><br/><sub><b>Formation lines</b> -- per-phase in-possession and out-of-possession shape overlay.</sub></td>
+    <td><img src="docs/media/momentum-xg.png" width="360"/><br/><sub><b>Momentum + cumulative xG</b> -- tug-of-war xT momentum chart paired with step-chart xG.</sub></td>
+  </tr>
+  <tr>
+    <td colspan="2"><img src="docs/media/player-contributions.png" width="740"/><br/><sub><b>Lineups and player contributions</b> -- Athletic-style lineups with xT and xG bar charts per team.</sub></td>
   </tr>
 </table>
 
